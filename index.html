@@ -13,10 +13,6 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html { scroll-behavior: smooth; }
         body { font-family: 'Inter', sans-serif; background: var(--dark-bg); color: #e0e0e0; overflow-x: hidden; }
-
-        /* Performance: GPU layer promotion for animated elements */
-        .gpu-layer { will-change: transform; transform: translateZ(0); backface-visibility: hidden; }
-
         #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
         nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 1.5rem 4rem; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(to bottom, rgba(5,5,8,0.9), transparent); backdrop-filter: blur(10px); }
         .logo { font-family: 'Orbitron', monospace; font-size: 1.5rem; font-weight: 900; background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: 2px; }
@@ -106,6 +102,7 @@
             .projects-grid { grid-template-columns: 1fr; }
         }
     </style>
+<base target="_blank">
 </head>
 <body>
 
@@ -324,344 +321,141 @@
     </footer>
 
     <script>
-    // ============================================
-    // PERFORMANCE & RESOURCE MANAGEMENT
-    // ============================================
     const ResourceManager = {
-        disposables: [],
-        rafIds: [],
-        listeners: [],
-        timers: [],
-
-        addDisposable(obj) {
-            if (obj && typeof obj.dispose === 'function') this.disposables.push(obj);
-            return obj;
-        },
+        disposables: [], rafIds: [], listeners: [], timers: [],
+        addDisposable(obj) { if (obj && typeof obj.dispose === 'function') this.disposables.push(obj); return obj; },
         addRAF(id) { this.rafIds.push(id); },
-        addListener(target, type, handler, opts) {
-            target.addEventListener(type, handler, opts);
-            this.listeners.push({ target, type, handler, opts });
-        },
+        addListener(target, type, handler, opts) { target.addEventListener(type, handler, opts); this.listeners.push({ target, type, handler, opts }); },
         addTimer(id) { this.timers.push(id); },
-
         disposeAll() {
             this.disposables.forEach(d => { try { d.dispose(); } catch(e) {} });
-            this.disposables = [];
             this.rafIds.forEach(id => cancelAnimationFrame(id));
-            this.rafIds = [];
-            this.listeners.forEach(({ target, type, handler, opts }) => {
-                target.removeEventListener(type, handler, opts);
-            });
-            this.listeners = [];
+            this.listeners.forEach(({ target, type, handler, opts }) => target.removeEventListener(type, handler, opts));
             this.timers.forEach(id => clearTimeout(id));
-            this.timers = [];
         }
     };
-
-    // Throttle utility using rAF (no setTimeout garbage)
-    function throttleRAF(fn) {
-        let ticking = false;
-        return function(...args) {
-            if (!ticking) {
-                requestAnimationFrame(() => {
-                    fn.apply(this, args);
-                    ticking = false;
-                });
-                ticking = true;
-            }
-        };
-    }
-
-    // Debounce utility
-    function debounce(fn, ms) {
-        let t;
-        return function(...args) {
-            clearTimeout(t);
-            t = setTimeout(() => fn.apply(this, args), ms);
-        };
-    }
-
-    // Visibility state
-    let isPageVisible = true;
-    let isHeroVisible = true;
-
-    ResourceManager.addListener(document, 'visibilitychange', () => {
-        isPageVisible = document.visibilityState === 'visible';
-    });
-
-    // IntersectionObserver for hero 3D scene
-    const heroObserver = new IntersectionObserver((entries) => {
-        isHeroVisible = entries[0].isIntersecting;
-    }, { threshold: 0.1 });
+    function throttleRAF(fn) { let ticking = false; return function(...args) { if (!ticking) { requestAnimationFrame(() => { fn.apply(this, args); ticking = false; }); ticking = true; } }; }
+    function debounce(fn, ms) { let t; return function(...args) { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), ms); }; }
+    let isPageVisible = true, isHeroVisible = true;
+    ResourceManager.addListener(document, 'visibilitychange', () => { isPageVisible = document.visibilityState === 'visible'; });
+    const heroObserver = new IntersectionObserver((entries) => { isHeroVisible = entries[0].isIntersecting; }, { threshold: 0.1 });
     const heroContainer = document.getElementById('hero-3d-container');
     if (heroContainer) heroObserver.observe(heroContainer);
 
-    // ============================================
-    // BACKGROUND NEURAL NETWORK - OPTIMIZED
-    // ============================================
+    // BACKGROUND NEURAL NETWORK
     const bgContainer = document.getElementById('canvas-container');
     const bgScene = new THREE.Scene();
     const bgCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const bgRenderer = ResourceManager.addDisposable(new THREE.WebGLRenderer({
-        antialias: false, // Performance: disable AA on background
-        alpha: true,
-        powerPreference: 'low-power' // Save GPU
-    }));
+    const bgRenderer = ResourceManager.addDisposable(new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: 'low-power' }));
     bgRenderer.setSize(window.innerWidth, window.innerHeight);
-    bgRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // Cap pixel ratio
+    bgRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     bgContainer.appendChild(bgRenderer.domElement);
     bgCamera.position.z = 30;
 
-    // OPTIMIZED: Use Points instead of 80 individual meshes = 1 draw call
-    const NODE_COUNT = 50; // Reduced from 80
-    const CONNECTION_DIST = 10; // Reduced from 12
+    const NODE_COUNT = 50, CONNECTION_DIST = 10;
     const nodePositions = new Float32Array(NODE_COUNT * 3);
-    const nodeVelocities = [];
-    const nodeColors = new Float32Array(NODE_COUNT * 3);
-
+    const nodeVelocities = [], nodeColors = new Float32Array(NODE_COUNT * 3);
     for (let i = 0; i < NODE_COUNT; i++) {
-        nodePositions[i * 3] = (Math.random() - 0.5) * 60;
-        nodePositions[i * 3 + 1] = (Math.random() - 0.5) * 60;
-        nodePositions[i * 3 + 2] = (Math.random() - 0.5) * 40;
-        nodeVelocities.push({
-            x: (Math.random() - 0.5) * 0.015,
-            y: (Math.random() - 0.5) * 0.015,
-            z: (Math.random() - 0.5) * 0.008
-        });
+        nodePositions[i*3] = (Math.random()-0.5)*60; nodePositions[i*3+1] = (Math.random()-0.5)*60; nodePositions[i*3+2] = (Math.random()-0.5)*40;
+        nodeVelocities.push({ x:(Math.random()-0.5)*0.015, y:(Math.random()-0.5)*0.015, z:(Math.random()-0.5)*0.008 });
     }
-
     const nodeGeo = ResourceManager.addDisposable(new THREE.BufferGeometry());
     nodeGeo.setAttribute('position', new THREE.BufferAttribute(nodePositions, 3));
     nodeGeo.setAttribute('color', new THREE.BufferAttribute(nodeColors, 3));
-
-    const nodeMat = new THREE.PointsMaterial({
-        size: 0.25,
-        vertexColors: true,
-        transparent: true,
-        opacity: 0.9,
-        sizeAttenuation: true
-    });
-    const nodePoints = new THREE.Points(nodeGeo, nodeMat);
+    const nodePoints = new THREE.Points(nodeGeo, new THREE.PointsMaterial({ size: 0.25, vertexColors: true, transparent: true, opacity: 0.9, sizeAttenuation: true }));
     bgScene.add(nodePoints);
 
-    // OPTIMIZED: Single LineSegments with pre-allocated buffer
-    // Max possible connections = NODE_COUNT * (NODE_COUNT - 1) / 2
-    const MAX_CONNECTIONS = Math.floor(NODE_COUNT * (NODE_COUNT - 1) / 2);
-    const connPositions = new Float32Array(MAX_CONNECTIONS * 2 * 3); // 2 vertices per line, 3 coords each
-    const connColors = new Float32Array(MAX_CONNECTIONS * 2 * 3);
-
+    const MAX_CONNECTIONS = Math.floor(NODE_COUNT*(NODE_COUNT-1)/2);
+    const connPositions = new Float32Array(MAX_CONNECTIONS*6);
+    const connColors = new Float32Array(MAX_CONNECTIONS*6);
     const connGeo = ResourceManager.addDisposable(new THREE.BufferGeometry());
     connGeo.setAttribute('position', new THREE.BufferAttribute(connPositions, 3));
     connGeo.setAttribute('color', new THREE.BufferAttribute(connColors, 3));
-
-    const connMat = new THREE.LineBasicMaterial({
-        vertexColors: true,
-        transparent: true,
-        opacity: 0.15,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false
-    });
-    const connLines = new THREE.LineSegments(connGeo, connMat);
+    const connLines = new THREE.LineSegments(connGeo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.15, blending: THREE.AdditiveBlending, depthWrite: false }));
     bgScene.add(connLines);
 
-    // Background particles - single Points system
-    const BG_PARTICLE_COUNT = 100; // Reduced from 200
-    const bgParticlePositions = new Float32Array(BG_PARTICLE_COUNT * 3);
-    for (let i = 0; i < BG_PARTICLE_COUNT * 3; i++) {
-        bgParticlePositions[i] = (Math.random() - 0.5) * 100;
-    }
+    const BG_PARTICLE_COUNT = 100;
+    const bgParticlePositions = new Float32Array(BG_PARTICLE_COUNT*3);
+    for (let i = 0; i < BG_PARTICLE_COUNT*3; i++) bgParticlePositions[i] = (Math.random()-0.5)*100;
     const bgParticleGeo = ResourceManager.addDisposable(new THREE.BufferGeometry());
     bgParticleGeo.setAttribute('position', new THREE.BufferAttribute(bgParticlePositions, 3));
-    const bgParticleMat = new THREE.PointsMaterial({
-        color: 0xb829dd,
-        size: 0.12,
-        transparent: true,
-        opacity: 0.5,
-        sizeAttenuation: true
-    });
-    const bgParticles = new THREE.Points(bgParticleGeo, bgParticleMat);
+    const bgParticles = new THREE.Points(bgParticleGeo, new THREE.PointsMaterial({ color: 0xb829dd, size: 0.12, transparent: true, opacity: 0.5, sizeAttenuation: true }));
     bgScene.add(bgParticles);
 
-    // Mouse state (throttled)
     let mouseX = 0, mouseY = 0;
-    const onMouseMove = throttleRAF((e) => {
-        mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
-        mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
-    });
-    ResourceManager.addListener(document, 'mousemove', onMouseMove, { passive: true });
+    ResourceManager.addListener(document, 'mousemove', throttleRAF((e) => {
+        mouseX = (e.clientX/window.innerWidth-0.5)*2; mouseY = (e.clientY/window.innerHeight-0.5)*2;
+    }), { passive: true });
 
-    // Background animation loop
     let bgFrame = 0;
-    let bgRafId;
-
-    function animateBg() {
-        bgRafId = requestAnimationFrame(animateBg);
-        ResourceManager.addRAF(bgRafId);
-        if (!isPageVisible) return;
-
-        bgFrame++;
-        const posAttr = nodeGeo.attributes.position;
-        const colAttr = nodeGeo.attributes.color;
-        const positions = posAttr.array;
-
-        // Update node positions
+    function animateBg() { requestAnimationFrame(animateBg); if (!isPageVisible) return; bgFrame++;
+        const posArr = nodeGeo.attributes.position.array, colArr = nodeGeo.attributes.color.array;
         for (let i = 0; i < NODE_COUNT; i++) {
-            const ix = i * 3, iy = i * 3 + 1, iz = i * 3 + 2;
-            positions[ix] += nodeVelocities[i].x;
-            positions[iy] += nodeVelocities[i].y;
-            positions[iz] += nodeVelocities[i].z;
-
-            // Boundary bounce
-            if (Math.abs(positions[ix]) > 30) nodeVelocities[i].x *= -1;
-            if (Math.abs(positions[iy]) > 30) nodeVelocities[i].y *= -1;
-            if (Math.abs(positions[iz]) > 20) nodeVelocities[i].z *= -1;
-
-            // Mouse repulsion
-            const dx = positions[ix] - mouseX * 20;
-            const dy = positions[iy] + mouseY * 20;
-            const dist2d = Math.sqrt(dx * dx + dy * dy);
-            if (dist2d < 10) {
-                positions[ix] += dx * 0.008;
-                positions[iy] += dy * 0.008;
-            }
-
-            // Color based on depth
-            const depth = (positions[iz] + 20) / 40;
-            const hue = 0.5 + depth * 0.2;
-            const rgb = new THREE.Color().setHSL(hue, 1, 0.5);
-            colAttr.array[ix] = rgb.r;
-            colAttr.array[iy] = rgb.g;
-            colAttr.array[iz] = rgb.b;
+            const ix=i*3, iy=i*3+1, iz=i*3+2;
+            posArr[ix]+=nodeVelocities[i].x; posArr[iy]+=nodeVelocities[i].y; posArr[iz]+=nodeVelocities[i].z;
+            if (Math.abs(posArr[ix])>30) nodeVelocities[i].x*=-1; if (Math.abs(posArr[iy])>30) nodeVelocities[i].y*=-1; if (Math.abs(posArr[iz])>20) nodeVelocities[i].z*=-1;
+            const dx=posArr[ix]-mouseX*20, dy=posArr[iy]+mouseY*20, dist2d=Math.sqrt(dx*dx+dy*dy);
+            if (dist2d<10) { posArr[ix]+=dx*0.008; posArr[iy]+=dy*0.008; }
+            const rgb = new THREE.Color().setHSL(0.5+((posArr[iz]+20)/40)*0.2, 1, 0.5);
+            colArr[ix]=rgb.r; colArr[iy]=rgb.g; colArr[iz]=rgb.b;
         }
-        posAttr.needsUpdate = true;
-        colAttr.needsUpdate = true;
-
-        // Update connections every 5 frames (not every 3)
-        if (bgFrame % 5 === 0) {
-            const connPosArr = connGeo.attributes.position.array;
-            const connColArr = connGeo.attributes.color.array;
-            let connIdx = 0;
-
-            for (let i = 0; i < NODE_COUNT && connIdx < MAX_CONNECTIONS; i++) {
-                const ix = i * 3, iy = i * 3 + 1, iz = i * 3 + 2;
-                for (let j = i + 1; j < NODE_COUNT && connIdx < MAX_CONNECTIONS; j++) {
-                    const jx = j * 3, jy = j * 3 + 1, jz = j * 3 + 2;
-                    const dx = positions[ix] - positions[jx];
-                    const dy = positions[iy] - positions[jy];
-                    const dz = positions[iz] - positions[jz];
-                    const distSq = dx * dx + dy * dy + dz * dz;
-
-                    if (distSq < CONNECTION_DIST * CONNECTION_DIST) {
-                        const dist = Math.sqrt(distSq);
-                        const alpha = (1 - dist / CONNECTION_DIST) * 0.3;
-
-                        // Vertex 1
-                        connPosArr[connIdx * 6] = positions[ix];
-                        connPosArr[connIdx * 6 + 1] = positions[iy];
-                        connPosArr[connIdx * 6 + 2] = positions[iz];
-                        connColArr[connIdx * 6] = 0;
-                        connColArr[connIdx * 6 + 1] = alpha;
-                        connColArr[connIdx * 6 + 2] = alpha;
-
-                        // Vertex 2
-                        connPosArr[connIdx * 6 + 3] = positions[jx];
-                        connPosArr[connIdx * 6 + 4] = positions[jy];
-                        connPosArr[connIdx * 6 + 5] = positions[jz];
-                        connColArr[connIdx * 6 + 3] = 0;
-                        connColArr[connIdx * 6 + 4] = alpha;
-                        connColArr[connIdx * 6 + 5] = alpha;
-
-                        connIdx++;
+        nodeGeo.attributes.position.needsUpdate = true; nodeGeo.attributes.color.needsUpdate = true;
+        if (bgFrame%5===0) {
+            let ci = 0;
+            for (let i = 0; i < NODE_COUNT && ci < MAX_CONNECTIONS; i++) {
+                for (let j = i+1; j < NODE_COUNT && ci < MAX_CONNECTIONS; j++) {
+                    const dx=posArr[i*3]-posArr[j*3], dy=posArr[i*3+1]-posArr[j*3+1], dz=posArr[i*3+2]-posArr[j*3+2];
+                    const distSq = dx*dx+dy*dy+dz*dz;
+                    if (distSq < CONNECTION_DIST*CONNECTION_DIST) {
+                        const alpha = (1-Math.sqrt(distSq)/CONNECTION_DIST)*0.3;
+                        connPositions[ci*6]=posArr[i*3]; connPositions[ci*6+1]=posArr[i*3+1]; connPositions[ci*6+2]=posArr[i*3+2];
+                        connPositions[ci*6+3]=posArr[j*3]; connPositions[ci*6+4]=posArr[j*3+1]; connPositions[ci*6+5]=posArr[j*3+2];
+                        connColors[ci*6]=0; connColors[ci*6+1]=alpha; connColors[ci*6+2]=alpha;
+                        connColors[ci*6+3]=0; connColors[ci*6+4]=alpha; connColors[ci*6+5]=alpha;
+                        ci++;
                     }
                 }
             }
-
-            // Hide unused connections by collapsing to origin
-            for (let k = connIdx; k < MAX_CONNECTIONS; k++) {
-                connPosArr[k * 6] = 0;
-                connPosArr[k * 6 + 1] = 0;
-                connPosArr[k * 6 + 2] = 0;
-                connPosArr[k * 6 + 3] = 0;
-                connPosArr[k * 6 + 4] = 0;
-                connPosArr[k * 6 + 5] = 0;
-                connColArr[k * 6 + 3] = 0;
-                connColArr[k * 6 + 4] = 0;
-                connColArr[k * 6 + 5] = 0;
-            }
-
-            connGeo.attributes.position.needsUpdate = true;
-            connGeo.attributes.color.needsUpdate = true;
-            connGeo.setDrawRange(0, connIdx * 2);
+            for (let k = ci; k < MAX_CONNECTIONS; k++) { connPositions[k*6]=0; connPositions[k*6+1]=0; connPositions[k*6+2]=0; connPositions[k*6+3]=0; connPositions[k*6+4]=0; connPositions[k*6+5]=0; }
+            connGeo.attributes.position.needsUpdate = true; connGeo.attributes.color.needsUpdate = true; connGeo.setDrawRange(0, ci*2);
         }
-
-        // Rotate background particles
-        bgParticles.rotation.y += 0.0003;
-        bgParticles.rotation.x += 0.0001;
-
-        // Camera parallax (smoothed)
-        bgCamera.position.x += (mouseX * 2 - bgCamera.position.x) * 0.015;
-        bgCamera.position.y += (-mouseY * 2 - bgCamera.position.y) * 0.015;
-        bgCamera.lookAt(bgScene.position);
-
-        bgRenderer.render(bgScene, bgCamera);
+        bgParticles.rotation.y += 0.0003; bgParticles.rotation.x += 0.0001;
+        bgCamera.position.x += (mouseX*2 - bgCamera.position.x)*0.015;
+        bgCamera.position.y += (-mouseY*2 - bgCamera.position.y)*0.015;
+        bgCamera.lookAt(bgScene.position); bgRenderer.render(bgScene, bgCamera);
     }
     animateBg();
+    ResourceManager.addListener(window, 'resize', debounce(() => { bgCamera.aspect = window.innerWidth/window.innerHeight; bgCamera.updateProjectionMatrix(); bgRenderer.setSize(window.innerWidth, window.innerHeight); }, 100), { passive: true });
 
-    // Debounced resize
-    const onResize = debounce(() => {
-        bgCamera.aspect = window.innerWidth / window.innerHeight;
-        bgCamera.updateProjectionMatrix();
-        bgRenderer.setSize(window.innerWidth, window.innerHeight);
-    }, 100);
-    ResourceManager.addListener(window, 'resize', onResize, { passive: true });
-
-    // ============================================
-    // 3D CHARACTER WORKSPACE - OPTIMIZED
-    // ============================================
+    // 3D CHARACTER WORKSPACE
     const scene3dContainer = document.getElementById('hero-3d-container');
     const scene3dCanvas = document.getElementById('scene3d-canvas');
     const scene3d = new THREE.Scene();
     scene3d.background = new THREE.Color(0x080810);
 
-    const scene3dCamera = new THREE.PerspectiveCamera(
-        45,
-        scene3dContainer.clientWidth / scene3dContainer.clientHeight,
-        0.1, 100
-    );
+    const scene3dCamera = new THREE.PerspectiveCamera(45, scene3dContainer.clientWidth/scene3dContainer.clientHeight, 0.1, 100);
     scene3dCamera.position.set(8, 6, 10);
     scene3dCamera.lookAt(0, 1, 0);
 
-    const scene3dRenderer = ResourceManager.addDisposable(new THREE.WebGLRenderer({
-        canvas: scene3dCanvas,
-        antialias: true,
-        alpha: true,
-        powerPreference: 'high-performance'
-    }));
+    const scene3dRenderer = ResourceManager.addDisposable(new THREE.WebGLRenderer({ canvas: scene3dCanvas, antialias: true, alpha: true, powerPreference: 'high-performance' }));
     scene3dRenderer.setSize(scene3dContainer.clientWidth, scene3dContainer.clientHeight);
     scene3dRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     scene3dRenderer.shadowMap.enabled = true;
     scene3dRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-    // OPTIMIZED: Reduced from 4 lights to 2 + 1 ambient
     const ambientLight = new THREE.AmbientLight(0x404060, 0.6);
     scene3d.add(ambientLight);
-
     const mainLight = new THREE.DirectionalLight(0x00f0ff, 0.7);
-    mainLight.position.set(5, 10, 5);
-    mainLight.castShadow = true;
-    mainLight.shadow.mapSize.width = 1024; // Reduced from 2048
-    mainLight.shadow.mapSize.height = 1024;
-    mainLight.shadow.camera.near = 0.5;
-    mainLight.shadow.camera.far = 25;
+    mainLight.position.set(5, 10, 5); mainLight.castShadow = true;
+    mainLight.shadow.mapSize.width = 1024; mainLight.shadow.mapSize.height = 1024;
+    mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 25;
     scene3d.add(mainLight);
+    const fillLight = new THREE.PointLight(0xb829dd, 0.4, 15);
+    fillLight.position.set(-5, 5, -5); scene3d.add(fillLight);
 
-    const fillLight = new THREE.PointLight(0xb829dd, 0.4, 15); // Reduced intensity & distance
-    fillLight.position.set(-5, 5, -5);
-    scene3d.add(fillLight);
-
-    // OPTIMIZED: Shared materials (no duplicates)
+    // Materials
     const materials = {
-        skin: new THREE.MeshLambertMaterial({ color: 0xffdbac }), // Cheaper than Standard
+        skin: new THREE.MeshLambertMaterial({ color: 0xffdbac }),
         shirt: new THREE.MeshLambertMaterial({ color: 0x1a1a2e }),
         pants: new THREE.MeshLambertMaterial({ color: 0x16213e }),
         desk: new THREE.MeshLambertMaterial({ color: 0x2d2d44 }),
@@ -669,6 +463,8 @@
         screenGlow: new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.3 }),
         chair: new THREE.MeshLambertMaterial({ color: 0x1a1a2e }),
         hair: new THREE.MeshLambertMaterial({ color: 0x1a0a00 }),
+        cap: new THREE.MeshLambertMaterial({ color: 0x1e3a5f }), // Dark blue cap
+        capBrim: new THREE.MeshLambertMaterial({ color: 0x1e3a5f }),
         mug: new THREE.MeshLambertMaterial({ color: 0xffffff }),
         coffee: new THREE.MeshBasicMaterial({ color: 0x3d2314 }),
         plantPot: new THREE.MeshLambertMaterial({ color: 0xc4703a }),
@@ -685,50 +481,41 @@
         lampMetal: new THREE.MeshStandardMaterial({ color: 0x333344, metalness: 0.8 }),
         steam: new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.25 }),
     };
-
-    // Track all materials for disposal
     Object.values(materials).forEach(m => ResourceManager.addDisposable(m));
 
     const workspaceGroup = new THREE.Group();
     scene3d.add(workspaceGroup);
 
-    // Helper: create box with shared geometry
+    // Shared geometries
     const boxGeo = ResourceManager.addDisposable(new THREE.BoxGeometry(1, 1, 1));
     const cylGeo = ResourceManager.addDisposable(new THREE.CylinderGeometry(1, 1, 1, 8));
     const sphereGeo = ResourceManager.addDisposable(new THREE.SphereGeometry(1, 12, 12));
 
     function createBox(w, h, d, mat, x, y, z, rx, ry, rz, castShadow) {
         const mesh = new THREE.Mesh(boxGeo, mat);
-        mesh.scale.set(w, h, d);
-        mesh.position.set(x, y, z);
-        if (rx) mesh.rotation.x = rx;
-        if (ry) mesh.rotation.y = ry;
-        if (rz) mesh.rotation.z = rz;
+        mesh.scale.set(w, h, d); mesh.position.set(x, y, z);
+        if (rx) mesh.rotation.x = rx; if (ry) mesh.rotation.y = ry; if (rz) mesh.rotation.z = rz;
         if (castShadow) mesh.castShadow = true;
         return mesh;
     }
 
     // DESK
     workspaceGroup.add(createBox(6, 0.15, 3, materials.desk, 0, 1.5, 0, 0, 0, 0, true));
-    const legPos = [[-2.8, 0.75, 1.3], [2.8, 0.75, 1.3], [-2.8, 0.75, -1.3], [2.8, 0.75, -1.3]];
+    const legPos = [[-2.8,0.75,1.3],[2.8,0.75,1.3],[-2.8,0.75,-1.3],[2.8,0.75,-1.3]];
     legPos.forEach(p => workspaceGroup.add(createBox(0.1, 1.5, 0.1, materials.desk, p[0], p[1], p[2], 0, 0, 0, true)));
 
     // CHAIR
     workspaceGroup.add(createBox(1.2, 0.1, 1.2, materials.chair, 0, 0.8, 1.2, 0, 0, 0, true));
     workspaceGroup.add(createBox(1.2, 1.2, 0.1, materials.chair, 0, 1.4, 1.7, 0, 0, 0, true));
-    const chairStem = new THREE.Mesh(cylGeo, materials.chair);
-    chairStem.scale.set(0.08, 0.8, 0.08);
-    chairStem.position.set(0, 0.4, 1.2);
-    workspaceGroup.add(chairStem);
-    const chairBase = new THREE.Mesh(cylGeo, materials.chair);
-    chairBase.scale.set(0.6, 0.05, 0.6);
-    chairBase.position.set(0, 0.025, 1.2);
-    workspaceGroup.add(chairBase);
+    const chairStem = new THREE.Mesh(cylGeo, materials.chair); chairStem.scale.set(0.08, 0.8, 0.08); chairStem.position.set(0, 0.4, 1.2); workspaceGroup.add(chairStem);
+    const chairBase = new THREE.Mesh(cylGeo, materials.chair); chairBase.scale.set(0.6, 0.05, 0.6); chairBase.position.set(0, 0.025, 1.2); workspaceGroup.add(chairBase);
 
-    // CHARACTER
+    // ============================================
+    // CHARACTER - FACING LAPTOP (-z direction)
+    // ============================================
     const characterGroup = new THREE.Group();
     characterGroup.position.set(0, 0.85, 1.2);
-    characterGroup.rotation.y = Math.PI;
+    characterGroup.rotation.y = Math.PI; // Face toward -z (toward laptop)
     workspaceGroup.add(characterGroup);
 
     // Torso
@@ -739,96 +526,142 @@
     headGroup.position.set(0, 1.4, 0);
     characterGroup.add(headGroup);
 
+    // Head
     const head = new THREE.Mesh(sphereGeo, materials.skin);
-    head.scale.set(0.35, 0.35, 0.35);
-    head.castShadow = true;
+    head.scale.set(0.35, 0.35, 0.35); head.castShadow = true;
     headGroup.add(head);
 
-    const hair = new THREE.Mesh(sphereGeo, materials.hair);
-    hair.scale.set(0.37, 0.2, 0.37);
-    hair.position.y = 0.12;
-    headGroup.add(hair);
+    // ============================================
+    // HAIR - VISIBLE FROM BACK
+    // ============================================
+    // Main hair volume on top
+    const hairTop = new THREE.Mesh(sphereGeo, materials.hair);
+    hairTop.scale.set(0.37, 0.32, 0.37);
+    hairTop.position.set(0, 0.1, -0.02);
+    headGroup.add(hairTop);
 
-    // Eyes
+    // Back hair (visible from behind)
+    const hairBack = new THREE.Mesh(sphereGeo, materials.hair);
+    hairBack.scale.set(0.36, 0.28, 0.22);
+    hairBack.position.set(0, 0.02, -0.18);
+    headGroup.add(hairBack);
+
+    // Side hair left
+    const hairSideL = new THREE.Mesh(sphereGeo, materials.hair);
+    hairSideL.scale.set(0.1, 0.22, 0.28);
+    hairSideL.position.set(-0.3, 0.0, -0.05);
+    headGroup.add(hairSideL);
+
+    // Side hair right
+    const hairSideR = new THREE.Mesh(sphereGeo, materials.hair);
+    hairSideR.scale.set(0.1, 0.22, 0.28);
+    hairSideR.position.set(0.3, 0.0, -0.05);
+    headGroup.add(hairSideR);
+
+    // ============================================
+    // CAP - DARK BLUE BASEBALL CAP
+    // ============================================
+    // Cap dome (cylinder, slightly flattened)
+    const capDome = new THREE.Mesh(cylGeo, materials.cap);
+    capDome.scale.set(0.36, 0.14, 0.36);
+    capDome.position.set(0, 0.28, 0.02);
+    headGroup.add(capDome);
+
+    // Cap brim/visor - pointing toward laptop (+z in local space)
+    const capBrim = new THREE.Mesh(boxGeo, materials.capBrim);
+    capBrim.scale.set(0.42, 0.025, 0.28);
+    capBrim.position.set(0, 0.22, 0.28);
+    capBrim.rotation.x = -0.18; // Angled down slightly
+    headGroup.add(capBrim);
+
+    // Cap button on top
+    const capButton = new THREE.Mesh(sphereGeo, materials.cap);
+    capButton.scale.set(0.04, 0.04, 0.04);
+    capButton.position.set(0, 0.36, 0.02);
+    headGroup.add(capButton);
+
+    // Eyes (glowing cyan)
     const eyeGeo = ResourceManager.addDisposable(new THREE.SphereGeometry(0.04, 6, 6));
     const eyeMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
     ResourceManager.addDisposable(eyeMat);
     const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
-    leftEye.position.set(-0.12, 0.05, 0.3);
-    headGroup.add(leftEye);
+    leftEye.position.set(-0.12, 0.05, 0.3); headGroup.add(leftEye);
     const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
-    rightEye.position.set(0.12, 0.05, 0.3);
-    headGroup.add(rightEye);
+    rightEye.position.set(0.12, 0.05, 0.3); headGroup.add(rightEye);
 
     // Glasses
     const lensGeo = ResourceManager.addDisposable(new THREE.BoxGeometry(0.14, 0.1, 0.02));
     const leftLens = new THREE.Mesh(lensGeo, materials.glasses);
-    leftLens.position.set(-0.12, 0.05, 0.32);
-    headGroup.add(leftLens);
+    leftLens.position.set(-0.12, 0.05, 0.32); headGroup.add(leftLens);
     const rightLens = new THREE.Mesh(lensGeo, materials.glasses);
-    rightLens.position.set(0.12, 0.05, 0.32);
-    headGroup.add(rightLens);
+    rightLens.position.set(0.12, 0.05, 0.32); headGroup.add(rightLens);
     const bridge = new THREE.Mesh(ResourceManager.addDisposable(new THREE.BoxGeometry(0.08, 0.02, 0.02)), materials.glassesFrame);
-    bridge.position.set(0, 0.05, 0.32);
-    headGroup.add(bridge);
+    bridge.position.set(0, 0.05, 0.32); headGroup.add(bridge);
 
-    // Arms
+    // ============================================
+    // ARMS - REACHING FORWARD TO KEYBOARD
+    // ============================================
+    // Arm geometries (reused)
     const armGeo = ResourceManager.addDisposable(new THREE.BoxGeometry(0.2, 0.6, 0.2));
     const forearmGeo = ResourceManager.addDisposable(new THREE.BoxGeometry(0.18, 0.5, 0.18));
     const handGeo = ResourceManager.addDisposable(new THREE.BoxGeometry(0.15, 0.15, 0.15));
 
+    // LEFT ARM - reaches to left side of keyboard
     const leftArmGroup = new THREE.Group();
-    leftArmGroup.position.set(-0.5, 1.0, 0);
+    leftArmGroup.position.set(-0.6, 1.3, 0); // Wider, higher shoulders
     characterGroup.add(leftArmGroup);
 
+    // Upper arm: angled forward toward laptop
     const leftUpper = new THREE.Mesh(armGeo, materials.shirt);
-    leftUpper.position.set(0, -0.2, 0.15);
-    leftUpper.rotation.x = 0.4;
+    leftUpper.position.set(0, -0.1, 0.28); // Shifted forward
+    leftUpper.rotation.x = 0.45; // Tilt forward toward keyboard
     leftArmGroup.add(leftUpper);
 
+    // Forearm group at end of upper arm
     const leftForearmGroup = new THREE.Group();
-    leftForearmGroup.position.set(0, -0.5, 0.4);
+    leftForearmGroup.position.set(0, -0.3, 0.5); // Further forward
     leftArmGroup.add(leftForearmGroup);
 
+    // Forearm: bent down to reach keyboard
     const leftForearm = new THREE.Mesh(forearmGeo, materials.shirt);
-    leftForearm.position.set(0, -0.15, 0.1);
-    leftForearm.rotation.x = 0.8;
+    leftForearm.position.set(0, -0.1, 0.18);
+    leftForearm.rotation.x = 0.75; // Bend forward-down
     leftForearmGroup.add(leftForearm);
 
+    // Hand: offset left, positioned over keyboard
     const leftHand = new THREE.Mesh(handGeo, materials.skin);
-    leftHand.position.set(0, -0.4, 0.3);
+    leftHand.position.set(-0.12, -0.32, 0.45); // Left offset, forward, down
     leftForearmGroup.add(leftHand);
 
+    // RIGHT ARM - reaches to right side of keyboard
     const rightArmGroup = new THREE.Group();
-    rightArmGroup.position.set(0.5, 1.0, 0);
+    rightArmGroup.position.set(0.6, 1.3, 0); // Wider, higher shoulders
     characterGroup.add(rightArmGroup);
 
     const rightUpper = new THREE.Mesh(armGeo, materials.shirt);
-    rightUpper.position.set(0, -0.2, 0.15);
-    rightUpper.rotation.x = 0.4;
+    rightUpper.position.set(0, -0.1, 0.28);
+    rightUpper.rotation.x = 0.45;
     rightArmGroup.add(rightUpper);
 
     const rightForearmGroup = new THREE.Group();
-    rightForearmGroup.position.set(0, -0.5, 0.4);
+    rightForearmGroup.position.set(0, -0.3, 0.5);
     rightArmGroup.add(rightForearmGroup);
 
     const rightForearm = new THREE.Mesh(forearmGeo, materials.shirt);
-    rightForearm.position.set(0, -0.15, 0.1);
-    rightForearm.rotation.x = 0.8;
+    rightForearm.position.set(0, -0.1, 0.18);
+    rightForearm.rotation.x = 0.75;
     rightForearmGroup.add(rightForearm);
 
     const rightHand = new THREE.Mesh(handGeo, materials.skin);
-    rightHand.position.set(0, -0.4, 0.3);
+    rightHand.position.set(0.12, -0.32, 0.45); // Right offset, forward, down
     rightForearmGroup.add(rightHand);
 
     // Legs
     const legGeo = ResourceManager.addDisposable(new THREE.BoxGeometry(0.25, 0.8, 0.25));
     const leftLeg = new THREE.Mesh(legGeo, materials.pants);
-    leftLeg.position.set(-0.25, -0.4, 0.2);
-    characterGroup.add(leftLeg);
+    leftLeg.position.set(-0.25, -0.4, 0.2); characterGroup.add(leftLeg);
     const rightLeg = new THREE.Mesh(legGeo, materials.pants);
-    rightLeg.position.set(0.25, -0.4, 0.2);
-    characterGroup.add(rightLeg);
+    rightLeg.position.set(0.25, -0.4, 0.2); characterGroup.add(rightLeg);
 
     // LAPTOP
     const laptopGroup = new THREE.Group();
@@ -846,25 +679,21 @@
 
     const displayPlane = ResourceManager.addDisposable(new THREE.PlaneGeometry(1.25, 0.75));
     const screenDisplay = new THREE.Mesh(displayPlane, materials.screenGlow);
-    screenDisplay.position.set(0, 0.45, 0.03);
-    screenDisplay.rotation.x = -0.3;
+    screenDisplay.position.set(0, 0.45, 0.03); screenDisplay.rotation.x = -0.3;
     screenGroup.add(screenDisplay);
 
-    // Code lines on screen
     const codeLineGeo = ResourceManager.addDisposable(new THREE.PlaneGeometry(1, 0.02));
     for (let i = 0; i < 5; i++) {
         const line = new THREE.Mesh(codeLineGeo, materials.codeLine);
         line.scale.x = 0.3 + Math.random() * 0.5;
-        line.position.set(-0.2 + Math.random() * 0.2, 0.65 - i * 0.1, 0.04);
-        line.rotation.x = -0.3;
+        line.position.set(-0.2 + Math.random() * 0.2, 0.65 - i * 0.1, 0.04); line.rotation.x = -0.3;
         screenGroup.add(line);
     }
 
-    const screenLight = new THREE.PointLight(0x00f0ff, 0.6, 4); // Reduced range
-    screenLight.position.set(0, 0.5, 0.5);
-    laptopGroup.add(screenLight);
+    const screenLight = new THREE.PointLight(0x00f0ff, 0.6, 4);
+    screenLight.position.set(0, 0.5, 0.5); laptopGroup.add(screenLight);
 
-    // Keyboard keys (simplified - fewer keys)
+    // Keyboard keys (simplified)
     const keyGeo = ResourceManager.addDisposable(new THREE.BoxGeometry(0.08, 0.02, 0.08));
     for (let row = 0; row < 3; row++) {
         for (let col = 0; col < 10; col++) {
@@ -876,82 +705,48 @@
 
     // COFFEE MUG
     const mugGroup = new THREE.Group();
-    mugGroup.position.set(1.8, 1.58, 0.3);
-    workspaceGroup.add(mugGroup);
-
+    mugGroup.position.set(1.8, 1.58, 0.3); workspaceGroup.add(mugGroup);
     const mugCyl = new THREE.Mesh(cylGeo, materials.mug);
-    mugCyl.scale.set(0.12, 0.25, 0.12);
-    mugCyl.castShadow = true;
-    mugGroup.add(mugCyl);
-
+    mugCyl.scale.set(0.12, 0.25, 0.12); mugCyl.castShadow = true; mugGroup.add(mugCyl);
     const coffeePlane = ResourceManager.addDisposable(new THREE.CircleGeometry(0.1, 8));
     const coffeeMesh = new THREE.Mesh(coffeePlane, materials.coffee);
-    coffeeMesh.rotation.x = -Math.PI / 2;
-    coffeeMesh.position.y = 0.1;
-    mugGroup.add(coffeeMesh);
+    coffeeMesh.rotation.x = -Math.PI / 2; coffeeMesh.position.y = 0.1; mugGroup.add(coffeeMesh);
 
-    // Steam - object pool of 3 particles
+    // Steam - object pool
     const steamPool = [];
     const steamGeo = ResourceManager.addDisposable(new THREE.SphereGeometry(0.02, 4, 4));
     for (let i = 0; i < 3; i++) {
         const steam = new THREE.Mesh(steamGeo, materials.steam.clone());
         steam.position.set(1.8, 1.75 + i * 0.1, 0.3);
         steam.userData = { baseY: 1.75 + i * 0.1, speed: 0.001 + i * 0.0005, offset: i * 2.1 };
-        workspaceGroup.add(steam);
-        steamPool.push(steam);
+        workspaceGroup.add(steam); steamPool.push(steam);
     }
 
     // PLANT
     const plantGroup = new THREE.Group();
-    plantGroup.position.set(-2.2, 1.58, -0.5);
-    workspaceGroup.add(plantGroup);
-
+    plantGroup.position.set(-2.2, 1.58, -0.5); workspaceGroup.add(plantGroup);
     const potCyl = new THREE.Mesh(cylGeo, materials.plantPot);
-    potCyl.scale.set(0.2, 0.3, 0.2);
-    potCyl.castShadow = true;
-    plantGroup.add(potCyl);
-
+    potCyl.scale.set(0.2, 0.3, 0.2); potCyl.castShadow = true; plantGroup.add(potCyl);
     const soilPlane = ResourceManager.addDisposable(new THREE.CircleGeometry(0.18, 6));
     const soil = new THREE.Mesh(soilPlane, new THREE.MeshLambertMaterial({ color: 0x3d2314 }));
-    soil.rotation.x = -Math.PI / 2;
-    soil.position.y = 0.12;
-    plantGroup.add(soil);
-
+    soil.rotation.x = -Math.PI / 2; soil.position.y = 0.12; plantGroup.add(soil);
     const leafGeo = ResourceManager.addDisposable(new THREE.SphereGeometry(0.15, 6, 6));
-    const leafPos = [[0, 0.4, 0, 0, 0], [0.1, 0.5, 0.1, 0.3, 0.2], [-0.1, 0.45, 0.1, -0.3, 0.3], [0, 0.55, -0.1, 0, -0.2]];
-    leafPos.forEach(([x, y, z, rx, rz]) => {
+    const leafPos = [[0,0.4,0,0,0],[0.1,0.5,0.1,0.3,0.2],[-0.1,0.45,0.1,-0.3,0.3],[0,0.55,-0.1,0,-0.2]];
+    leafPos.forEach(([x,y,z,rx,rz]) => {
         const leaf = new THREE.Mesh(leafGeo, materials.plantGreen);
-        leaf.scale.set(1, 2, 0.3);
-        leaf.position.set(x, y, z);
-        leaf.rotation.set(rx, 0, rz);
-        leaf.castShadow = true;
-        plantGroup.add(leaf);
+        leaf.scale.set(1, 2, 0.3); leaf.position.set(x, y, z); leaf.rotation.set(rx, 0, rz); leaf.castShadow = true; plantGroup.add(leaf);
     });
 
-    // DESK LAMP (simplified)
+    // DESK LAMP
     const lampGroup = new THREE.Group();
-    lampGroup.position.set(-1.5, 1.58, -0.8);
-    workspaceGroup.add(lampGroup);
-
-    const lampBase = new THREE.Mesh(cylGeo, materials.lampMetal);
-    lampBase.scale.set(0.15, 0.05, 0.15);
-    lampGroup.add(lampBase);
-
+    lampGroup.position.set(-1.5, 1.58, -0.8); workspaceGroup.add(lampGroup);
+    const lampBase = new THREE.Mesh(cylGeo, materials.lampMetal); lampBase.scale.set(0.15, 0.05, 0.15); lampGroup.add(lampBase);
     const lampArm = new THREE.Mesh(ResourceManager.addDisposable(new THREE.CylinderGeometry(0.02, 0.02, 0.8)), materials.lampMetal);
-    lampArm.position.set(0, 0.4, 0);
-    lampArm.rotation.z = 0.3;
-    lampGroup.add(lampArm);
-
+    lampArm.position.set(0, 0.4, 0); lampArm.rotation.z = 0.3; lampGroup.add(lampArm);
     const lampHead = new THREE.Mesh(ResourceManager.addDisposable(new THREE.ConeGeometry(0.12, 0.2, 8, 1, true)), materials.lampMetal);
-    lampHead.position.set(0.2, 0.7, 0);
-    lampHead.rotation.z = 2.5;
-    lampGroup.add(lampHead);
-
+    lampHead.position.set(0.2, 0.7, 0); lampHead.rotation.z = 2.5; lampGroup.add(lampHead);
     const lampLight = new THREE.SpotLight(0xffaa55, 0.4, 6, Math.PI / 4, 0.5);
-    lampLight.position.set(0.2, 0.7, 0);
-    lampLight.target.position.set(0, 0, 0.5);
-    lampGroup.add(lampLight);
-    lampGroup.add(lampLight.target);
+    lampLight.position.set(0.2, 0.7, 0); lampLight.target.position.set(0, 0, 0.5); lampGroup.add(lampLight); lampGroup.add(lampLight.target);
 
     // BOOKS
     workspaceGroup.add(createBox(0.4, 0.08, 0.6, materials.book1, 2.2, 1.54, -0.5, 0, 0.2, 0, true));
@@ -961,145 +756,84 @@
     // FLOOR & WALLS
     const floorPlane = ResourceManager.addDisposable(new THREE.PlaneGeometry(20, 20));
     const floor = new THREE.Mesh(floorPlane, materials.floor);
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = 0;
-    floor.receiveShadow = true;
-    scene3d.add(floor);
-
+    floor.rotation.x = -Math.PI / 2; floor.position.y = 0; floor.receiveShadow = true; scene3d.add(floor);
     const wallPlane = ResourceManager.addDisposable(new THREE.PlaneGeometry(20, 10));
     const backWall = new THREE.Mesh(wallPlane, materials.wall);
-    backWall.position.set(0, 5, -5);
-    backWall.receiveShadow = true;
-    scene3d.add(backWall);
-
+    backWall.position.set(0, 5, -5); backWall.receiveShadow = true; scene3d.add(backWall);
     const sideWall = new THREE.Mesh(wallPlane, materials.wall);
-    sideWall.position.set(-5, 5, 0);
-    sideWall.rotation.y = Math.PI / 2;
-    sideWall.receiveShadow = true;
-    scene3d.add(sideWall);
+    sideWall.position.set(-5, 5, 0); sideWall.rotation.y = Math.PI / 2; sideWall.receiveShadow = true; scene3d.add(sideWall);
 
-    // OPTIMIZED: Single texture atlas for code particles instead of 15 canvas textures
+    // Code sprites (texture atlas)
     const codeAtlasCanvas = document.createElement('canvas');
-    codeAtlasCanvas.width = 256;
-    codeAtlasCanvas.height = 256;
+    codeAtlasCanvas.width = 256; codeAtlasCanvas.height = 256;
     const atlasCtx = codeAtlasCanvas.getContext('2d');
-    atlasCtx.fillStyle = '#00f0ff';
-    atlasCtx.font = 'bold 24px monospace';
+    atlasCtx.fillStyle = '#00f0ff'; atlasCtx.font = 'bold 24px monospace';
     const codeChars = ['{', '}', '<', '>', '/', ';', 'AI', 'ML', 'py', 'js'];
-    codeChars.forEach((ch, i) => {
-        const x = (i % 4) * 64 + 32;
-        const y = Math.floor(i / 4) * 64 + 32;
-        atlasCtx.textAlign = 'center';
-        atlasCtx.textBaseline = 'middle';
-        atlasCtx.fillText(ch, x, y);
-    });
+    codeChars.forEach((ch, i) => { atlasCtx.textAlign = 'center'; atlasCtx.textBaseline = 'middle'; atlasCtx.fillText(ch, (i%4)*64+32, Math.floor(i/4)*64+32); });
     const codeAtlasTexture = new THREE.CanvasTexture(codeAtlasCanvas);
-    codeAtlasTexture.magFilter = THREE.NearestFilter;
-    codeAtlasTexture.minFilter = THREE.NearestFilter;
+    codeAtlasTexture.magFilter = THREE.NearestFilter; codeAtlasTexture.minFilter = THREE.NearestFilter;
     ResourceManager.addDisposable(codeAtlasTexture);
 
     const codeSprites = [];
     for (let i = 0; i < 10; i++) {
-        const spriteMat = new THREE.SpriteMaterial({
-            map: codeAtlasTexture,
-            transparent: true,
-            opacity: 0.5
-        });
+        const spriteMat = new THREE.SpriteMaterial({ map: codeAtlasTexture, transparent: true, opacity: 0.5 });
         const sprite = new THREE.Sprite(spriteMat);
-        sprite.position.set((Math.random() - 0.5) * 8, 2 + Math.random() * 4, (Math.random() - 0.5) * 6);
+        sprite.position.set((Math.random()-0.5)*8, 2+Math.random()*4, (Math.random()-0.5)*6);
         sprite.scale.set(0.4, 0.4, 0.4);
-        sprite.userData = {
-            vx: (Math.random() - 0.5) * 0.008,
-            vy: 0.003 + Math.random() * 0.005,
-            vz: (Math.random() - 0.5) * 0.008
-        };
-        scene3d.add(sprite);
-        codeSprites.push(sprite);
+        sprite.userData = { vx:(Math.random()-0.5)*0.008, vy:0.003+Math.random()*0.005, vz:(Math.random()-0.5)*0.008 };
+        scene3d.add(sprite); codeSprites.push(sprite);
     }
 
-    // Mouse interaction for 3D scene (throttled)
-    let scene3dMouseX = 0, scene3dMouseY = 0;
-    let isDragging = false;
-    let prevMousePos = { x: 0, y: 0 };
-    let sceneRotY = 0;
-    let sceneRotX = 0;
-
-    const onSceneMouseDown = (e) => {
-        isDragging = true;
-        prevMousePos = { x: e.clientX, y: e.clientY };
-    };
-    const onSceneMouseUp = () => { isDragging = false; };
-
-    const onSceneMouseMove = throttleRAF((e) => {
+    // Mouse interaction
+    let scene3dMouseX = 0, scene3dMouseY = 0, isDragging = false, prevMousePos = { x: 0, y: 0 }, sceneRotY = 0, sceneRotX = 0;
+    ResourceManager.addListener(scene3dContainer, 'mousedown', (e) => { isDragging = true; prevMousePos = { x: e.clientX, y: e.clientY }; });
+    ResourceManager.addListener(document, 'mouseup', () => { isDragging = false; });
+    ResourceManager.addListener(document, 'mousemove', throttleRAF((e) => {
         if (isDragging && e.target === scene3dCanvas) {
-            const dx = e.clientX - prevMousePos.x;
-            const dy = e.clientY - prevMousePos.y;
-            sceneRotY += dx * 0.005;
-            sceneRotX += dy * 0.005;
-            sceneRotX = Math.max(-0.5, Math.min(0.5, sceneRotX));
-            prevMousePos = { x: e.clientX, y: e.clientY };
+            const dx = e.clientX - prevMousePos.x, dy = e.clientY - prevMousePos.y;
+            sceneRotY += dx * 0.005; sceneRotX += dy * 0.005;
+            sceneRotX = Math.max(-0.5, Math.min(0.5, sceneRotX)); prevMousePos = { x: e.clientX, y: e.clientY };
         }
         const rect = scene3dContainer.getBoundingClientRect();
         scene3dMouseX = (e.clientX - rect.left) / rect.width - 0.5;
         scene3dMouseY = (e.clientY - rect.top) / rect.height - 0.5;
-    });
-
-    ResourceManager.addListener(scene3dContainer, 'mousedown', onSceneMouseDown);
-    ResourceManager.addListener(document, 'mouseup', onSceneMouseUp);
-    ResourceManager.addListener(document, 'mousemove', onSceneMouseMove);
-
-    // Touch support
-    ResourceManager.addListener(scene3dContainer, 'touchstart', (e) => {
-        isDragging = true;
-        prevMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    }, { passive: true });
+    }));
+    ResourceManager.addListener(scene3dContainer, 'touchstart', (e) => { isDragging = true; prevMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }, { passive: true });
     ResourceManager.addListener(document, 'touchend', () => { isDragging = false; });
-    ResourceManager.addListener(document, 'touchmove', (e) => {
-        if (isDragging) {
-            const dx = e.touches[0].clientX - prevMousePos.x;
-            const dy = e.touches[0].clientY - prevMousePos.y;
-            sceneRotY += dx * 0.005;
-            sceneRotX += dy * 0.005;
-            sceneRotX = Math.max(-0.5, Math.min(0.5, sceneRotX));
-            prevMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        }
-    }, { passive: true });
+    ResourceManager.addListener(document, 'touchmove', (e) => { if (isDragging) { const dx = e.touches[0].clientX - prevMousePos.x, dy = e.touches[0].clientY - prevMousePos.y; sceneRotY += dx * 0.005; sceneRotX += dy * 0.005; sceneRotX = Math.max(-0.5, Math.min(0.5, sceneRotX)); prevMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY }; } }, { passive: true });
 
-    // 3D Animation loop
+    // ============================================
+    // CORRECTED ANIMATION LOOP
+    // ============================================
     let time = 0;
-    let scene3dRafId;
-
     function animate3D() {
-        scene3dRafId = requestAnimationFrame(animate3D);
-        ResourceManager.addRAF(scene3dRafId);
+        requestAnimationFrame(animate3D);
         if (!isPageVisible || !isHeroVisible) return;
-
         time += 0.016;
 
-        // Typing animation
+        // TYPING ANIMATION - forearms move up/down hitting keys
         const tSpeed = 8;
-        leftForearmGroup.rotation.x = 0.8 + Math.sin(time * tSpeed) * 0.12;
+        // Base forearm rotation.x = 0.75 (reaching keyboard)
+        // Oscillate for typing motion
+        leftForearmGroup.rotation.x = 0.75 + Math.sin(time * tSpeed) * 0.1;
         leftForearmGroup.rotation.z = Math.cos(time * tSpeed * 0.7) * 0.04;
-        rightForearmGroup.rotation.x = 0.8 + Math.sin(time * tSpeed + Math.PI) * 0.12;
+        rightForearmGroup.rotation.x = 0.75 + Math.sin(time * tSpeed + Math.PI) * 0.1;
         rightForearmGroup.rotation.z = Math.cos(time * tSpeed * 0.7 + Math.PI) * 0.04;
 
-        // Head looking at screen
+        // Head looking down at screen
         headGroup.rotation.y = Math.sin(time * 0.5) * 0.08;
         headGroup.rotation.x = 0.25 + Math.sin(time * 0.3) * 0.03;
 
         // Breathing
         characterGroup.position.y = 0.85 + Math.sin(time * 1.5) * 0.008;
 
-        // Steam (object pool, no allocation)
+        // Steam
         steamPool.forEach((steam) => {
             steam.position.y += steam.userData.speed;
             steam.position.x = 1.8 + Math.sin(time * 2 + steam.userData.offset) * 0.02;
             const life = (steam.position.y - steam.userData.baseY) / 0.5;
             steam.material.opacity = Math.max(0, 0.25 * (1 - life));
-            if (steam.position.y > steam.userData.baseY + 0.5) {
-                steam.position.y = steam.userData.baseY;
-                steam.material.opacity = 0.25;
-            }
+            if (steam.position.y > steam.userData.baseY + 0.5) { steam.position.y = steam.userData.baseY; steam.material.opacity = 0.25; }
         });
 
         // Screen glow
@@ -1108,164 +842,92 @@
 
         // Code sprites
         codeSprites.forEach(sprite => {
-            sprite.position.x += sprite.userData.vx;
-            sprite.position.y += sprite.userData.vy;
-            sprite.position.z += sprite.userData.vz;
+            sprite.position.x += sprite.userData.vx; sprite.position.y += sprite.userData.vy; sprite.position.z += sprite.userData.vz;
             sprite.material.opacity = 0.3 + Math.sin(time * 2 + sprite.position.x) * 0.15;
             if (sprite.position.y > 6) sprite.position.y = 2;
             if (Math.abs(sprite.position.x) > 5) sprite.userData.vx *= -1;
             if (Math.abs(sprite.position.z) > 4) sprite.userData.vz *= -1;
         });
 
-        // Plant sway
         plantGroup.rotation.z = Math.sin(time * 0.8) * 0.02;
-
-        // Lamp flicker
         lampLight.intensity = 0.35 + Math.sin(time * 10) * 0.04 + Math.sin(time * 23) * 0.02;
 
-        // Smooth rotation
         const targetY = sceneRotY + scene3dMouseX * 0.3;
         const targetX = sceneRotX - scene3dMouseY * 0.2;
         workspaceGroup.rotation.y += (targetY - workspaceGroup.rotation.y) * 0.05;
         workspaceGroup.rotation.x += (targetX - workspaceGroup.rotation.x) * 0.05;
 
-        // Camera drift
         scene3dCamera.position.x = 8 + Math.sin(time * 0.3) * 0.3;
         scene3dCamera.position.y = 6 + Math.cos(time * 0.2) * 0.2;
         scene3dCamera.lookAt(0, 1, 0);
-
         scene3dRenderer.render(scene3d, scene3dCamera);
     }
     animate3D();
 
-    // Debounced resize for 3D scene
-    const onSceneResize = debounce(() => {
-        const w = scene3dContainer.clientWidth;
-        const h = scene3dContainer.clientHeight;
-        scene3dCamera.aspect = w / h;
-        scene3dCamera.updateProjectionMatrix();
-        scene3dRenderer.setSize(w, h);
-    }, 150);
-    ResourceManager.addListener(window, 'resize', onSceneResize, { passive: true });
+    ResourceManager.addListener(window, 'resize', debounce(() => {
+        const w = scene3dContainer.clientWidth, h = scene3dContainer.clientHeight;
+        scene3dCamera.aspect = w / h; scene3dCamera.updateProjectionMatrix(); scene3dRenderer.setSize(w, h);
+    }, 150), { passive: true });
 
-    // ============================================
-    // GSAP SCROLL ANIMATIONS - OPTIMIZED
-    // ============================================
+    // GSAP SCROLL ANIMATIONS
     gsap.registerPlugin(ScrollTrigger);
 
-    // Batch reveal animations for better performance
-    const revealElements = gsap.utils.toArray('.reveal');
-    revealElements.forEach((elem, i) => {
+    gsap.utils.toArray('.reveal').forEach((elem, i) => {
         gsap.to(elem, {
-            opacity: 1,
-            y: 0,
-            duration: 0.8,
-            ease: 'power2.out',
-            scrollTrigger: {
-                trigger: elem,
-                start: 'top 88%',
-                toggleActions: 'play none none none',
-                once: true // CRITICAL: Kill after first trigger to save memory
-            },
+            opacity: 1, y: 0, duration: 0.8, ease: 'power2.out',
+            scrollTrigger: { trigger: elem, start: 'top 88%', toggleActions: 'play none none none', once: true },
             delay: (i % 4) * 0.08
         });
     });
 
-    // 3D Card Tilt Effect
+    // 3D Card Tilt
     const aboutCard = document.getElementById('about-card');
     const contactCard = document.getElementById('contact-card');
-
     [aboutCard, contactCard].forEach(card => {
         if (!card) return;
         const onMove = (e) => {
             const rect = card.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            const cx = rect.width / 2;
-            const cy = rect.height / 2;
-            card.style.transform = `perspective(1000px) rotateX(${(y - cy) / 10}deg) rotateY(${(cx - x) / 10}deg) scale3d(1.02,1.02,1.02)`;
+            const x = e.clientX - rect.left, y = e.clientY - rect.top;
+            const cx = rect.width / 2, cy = rect.height / 2;
+            card.style.transform = `perspective(1000px) rotateX(${(y-cy)/10}deg) rotateY(${(cx-x)/10}deg) scale3d(1.02,1.02,1.02)`;
         };
-        const onLeave = () => {
-            card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1,1,1)';
-        };
-        card.addEventListener('mousemove', onMove);
-        card.addEventListener('mouseleave', onLeave);
+        const onLeave = () => { card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1,1,1)'; };
+        card.addEventListener('mousemove', onMove); card.addEventListener('mouseleave', onLeave);
         ResourceManager.listeners.push({ target: card, type: 'mousemove', handler: onMove });
         ResourceManager.listeners.push({ target: card, type: 'mouseleave', handler: onLeave });
     });
 
-    // Project cards 3D tilt
     document.querySelectorAll('.project-card').forEach(card => {
         const onMove = (e) => {
             const rect = card.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            const cx = rect.width / 2;
-            const cy = rect.height / 2;
-            card.style.transform = `perspective(1000px) rotateX(${-(y - cy) / 15}deg) rotateY(${(cx - x) / 15}deg) translateY(-10px)`;
+            const x = e.clientX - rect.left, y = e.clientY - rect.top;
+            const cx = rect.width / 2, cy = rect.height / 2;
+            card.style.transform = `perspective(1000px) rotateX(${-(y-cy)/15}deg) rotateY(${(cx-x)/15}deg) translateY(-10px)`;
         };
-        const onLeave = () => {
-            card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) translateY(0)';
-        };
-        card.addEventListener('mousemove', onMove);
-        card.addEventListener('mouseleave', onLeave);
+        const onLeave = () => { card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) translateY(0)'; };
+        card.addEventListener('mousemove', onMove); card.addEventListener('mouseleave', onLeave);
         ResourceManager.listeners.push({ target: card, type: 'mousemove', handler: onMove });
         ResourceManager.listeners.push({ target: card, type: 'mouseleave', handler: onLeave });
     });
 
-    // Hero parallax (scrubbed, no ongoing animations)
-    gsap.to('.hero h1', {
-        yPercent: 20,
-        ease: 'none',
-        scrollTrigger: {
-            trigger: '.hero',
-            start: 'top top',
-            end: 'bottom top',
-            scrub: true
-        }
-    });
+    gsap.to('.hero h1', { yPercent: 20, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
 
-    // Smooth scroll for nav links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        const onClick = (e) => {
-            e.preventDefault();
-            const target = document.querySelector(anchor.getAttribute('href'));
-            if (target) {
-                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        };
+        const onClick = (e) => { e.preventDefault(); const target = document.querySelector(anchor.getAttribute('href')); if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
         anchor.addEventListener('click', onClick);
         ResourceManager.listeners.push({ target: anchor, type: 'click', handler: onClick });
     });
 
-    // ============================================
-    // CLEANUP ON PAGE UNLOAD
-    // ============================================
+    // Cleanup on unload
     ResourceManager.addListener(window, 'beforeunload', () => {
         ResourceManager.disposeAll();
-        // Dispose all geometries
-        [nodeGeo, connGeo, bgParticleGeo, displayPlane, codeLineGeo, codeAtlasTexture,
-         boxGeo, cylGeo, sphereGeo, eyeGeo, lensGeo, bridge.geometry, armGeo, forearmGeo,
-         handGeo, legGeo, keyGeo, floorPlane, wallPlane, soilPlane, coffeePlane, steamGeo,
-         leafGeo, lampArm.geometry, lampHead.geometry].forEach(g => {
-            if (g && g.dispose) try { g.dispose(); } catch(e) {}
-        });
-        // Dispose renderers
+        [nodeGeo, connGeo, bgParticleGeo, displayPlane, codeLineGeo, codeAtlasTexture, boxGeo, cylGeo, sphereGeo, eyeGeo, lensGeo, bridge.geometry, armGeo, forearmGeo, handGeo, legGeo, keyGeo, floorPlane, wallPlane, soilPlane, coffeePlane, steamGeo, leafGeo, lampArm.geometry, lampHead.geometry].forEach(g => { if (g && g.dispose) try { g.dispose(); } catch(e) {} });
         if (bgRenderer) { bgRenderer.dispose(); bgRenderer.forceContextLoss(); }
         if (scene3dRenderer) { scene3dRenderer.dispose(); scene3dRenderer.forceContextLoss(); }
-        // Kill GSAP
-        ScrollTrigger.getAll().forEach(t => t.kill());
-        gsap.globalTimeline.clear();
+        ScrollTrigger.getAll().forEach(t => t.kill()); gsap.globalTimeline.clear();
     });
 
-    // Expose for debugging
-    window._portfolioPerf = {
-        getMemory: () => performance.memory ? {
-            used: (performance.memory.usedJSHeapSize / 1048576).toFixed(1) + ' MB',
-            total: (performance.memory.totalJSHeapSize / 1048576).toFixed(1) + ' MB'
-        } : 'N/A',
-        ResourceManager
-    };
+    window._portfolioPerf = { getMemory: () => performance.memory ? { used: (performance.memory.usedJSHeapSize/1048576).toFixed(1)+' MB', total: (performance.memory.totalJSHeapSize/1048576).toFixed(1)+' MB' } : 'N/A', ResourceManager };
     </script>
 </body>
 </html>
