@@ -20,7 +20,7 @@ $(document).ready(function () {
 document.addEventListener('visibilitychange',
     function () {
         if (document.visibilityState === "visible") {
-            document.title = "Projects | Portfolio Jigar Sable";
+            document.title = "Projects | Portfolio Mayur Datu Patil";
             $("#favicon").attr("href", "/assets/images/favicon.png");
         }
         else {
@@ -44,6 +44,8 @@ function showProjects(projects) {
     let projectsContainer = document.querySelector(".work .box-container");
     let projectsHTML = "";
     projects.forEach(project => {
+        const projectActions = project.inProgress ? "" : `
+            <a href="${project.links.view}" class="btn" target="_blank"><i class="fas fa-eye"></i> View</a>`;
         projectsHTML += `
         <div class="grid-item ${project.category}">
         <div class="box tilt" style="width: 380px; margin: 1rem">
@@ -54,10 +56,7 @@ function showProjects(projects) {
         </div>
         <div class="desc">
           <p>${project.desc}</p>
-          <div class="btns">
-            <a href="${project.links.view}" class="btn" target="_blank"><i class="fas fa-eye"></i> View</a>
-            <a href="${project.links.code}" class="btn" target="_blank">Code <i class="fas fa-code"></i></a>
-          </div>
+                    ${projectActions ? `<div class="btns">${projectActions}</div>` : ""}
         </div>
       </div>
     </div>

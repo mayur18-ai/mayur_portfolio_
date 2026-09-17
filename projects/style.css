@@ -202,12 +202,14 @@ header .navbar ul li a:hover{
   margin: 2rem;
 }
 .work .box-container .box{
-  flex:1 1 30rem;
+  flex:0 0 380px;
   border-radius: .5rem;
   box-shadow: 0 .7rem 1rem rgba(0,0,0,.3);
   position: relative;
   overflow:hidden;
   height:30rem;
+  min-height:30rem;
+  min-width:30rem;
   background: #fff;
   border: none;
 }
