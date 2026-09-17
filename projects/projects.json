@@ -1,0 +1,31 @@
+[
+  {
+    "name": "AI Agent + RAG System",
+    "desc": "Production-style RAG pipeline with a LangGraph agent, ChromaDB semantic search, Hugging Face embeddings, and a Gradio interface, deployed on Hugging Face Spaces.",
+    "image": "rag-agent",
+    "category": "ai",
+    "links": {"view": "https://huggingface.co/mayur10", "code": "https://github.com/mayur18-ai"}
+  },
+  {
+    "name": "AI Resume Forge",
+    "desc": "LLM-powered resume and cover letter generator using Groq LLaMA 3.3 70B, structured prompts, and a multi-tab Gradio workflow.",
+    "image": "ai-resume-forge",
+    "category": "ai",
+    "links": {"view": "https://huggingface.co/mayur10", "code": "https://github.com/mayur18-ai"}
+  },
+  {
+    "name": "VisionVoice AI",
+    "desc": "Voice-guided accessibility app using the Web Speech API, speech synthesis, live camera scanning, emergency alerts, and English/Hindi support.",
+    "image": "visionvoice-ai",
+    "category": "web",
+    "links": {"view": "https://vision-voice-five.vercel.app", "code": "https://github.com/mayur18-ai"}
+  },
+  {
+    "name": "TrekHub",
+    "desc": "In progress: India-focused adventure travel comparison marketplace with a Next.js web app, Expo mobile app, PostgreSQL schema, and Drizzle ORM.",
+    "image": "trekhub",
+    "category": "web",
+    "inProgress": true,
+    "links": {"view": "https://github.com/mayur18-ai", "code": "https://github.com/mayur18-ai"}
+  }
+]

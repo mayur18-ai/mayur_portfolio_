@@ -2,932 +2,391 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mayur Patil | AI & ML Engineer</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
-    <style>
-        :root { --neon-cyan: #00f0ff; --neon-purple: #b829dd; --neon-blue: #2979ff; --dark-bg: #050508; --card-bg: rgba(10,10,20,0.7); --glass: rgba(255,255,255,0.03); }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html { scroll-behavior: smooth; }
-        body { font-family: 'Inter', sans-serif; background: var(--dark-bg); color: #e0e0e0; overflow-x: hidden; }
-        #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
-        nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 1.5rem 4rem; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(to bottom, rgba(5,5,8,0.9), transparent); backdrop-filter: blur(10px); }
-        .logo { font-family: 'Orbitron', monospace; font-size: 1.5rem; font-weight: 900; background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: 2px; }
-        .nav-links { display: flex; gap: 2.5rem; list-style: none; }
-        .nav-links a { color: #a0a0b0; text-decoration: none; font-size: 0.9rem; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; transition: color 0.3s; position: relative; }
-        .nav-links a::after { content: ''; position: absolute; bottom: -5px; left: 0; width: 0; height: 2px; background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple)); transition: width 0.3s; }
-        .nav-links a:hover { color: var(--neon-cyan); }
-        .nav-links a:hover::after { width: 100%; }
-        section { position: relative; z-index: 1; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 6rem 4rem; }
-        .hero { flex-direction: row; justify-content: space-between; max-width: 1400px; width: 100%; gap: 4rem; padding-top: 8rem; }
-        .hero-content { flex: 1; max-width: 600px; }
-        .hero-3d { flex: 1; height: 500px; position: relative; border-radius: 24px; overflow: hidden; border: 1px solid rgba(0,240,255,0.15); background: rgba(0,0,0,0.3); box-shadow: 0 0 60px rgba(0,240,255,0.1), inset 0 0 60px rgba(0,0,0,0.5); }
-        #scene3d-canvas { width: 100% !important; height: 100% !important; display: block; }
-        .hero-3d-label { position: absolute; bottom: 1rem; left: 50%; transform: translateX(-50%); font-family: 'Orbitron', monospace; font-size: 0.7rem; color: var(--neon-cyan); letter-spacing: 3px; text-transform: uppercase; opacity: 0.7; pointer-events: none; }
-        .hero-badge { display: inline-block; padding: 0.5rem 1.5rem; border: 1px solid rgba(0,240,255,0.3); border-radius: 50px; font-size: 0.85rem; color: var(--neon-cyan); margin-bottom: 2rem; background: rgba(0,240,255,0.05); backdrop-filter: blur(10px); animation: pulse 2s infinite; }
-        @keyframes pulse { 0%,100% { box-shadow: 0 0 10px rgba(0,240,255,0.2); } 50% { box-shadow: 0 0 25px rgba(0,240,255,0.4); } }
-        .hero h1 { font-family: 'Orbitron', monospace; font-size: clamp(2.5rem, 5vw, 4.5rem); font-weight: 900; line-height: 1.1; margin-bottom: 1rem; background: linear-gradient(135deg, #fff 0%, var(--neon-cyan) 50%, var(--neon-purple) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .hero-subtitle { font-size: clamp(1rem, 2vw, 1.2rem); color: #8892b0; margin-bottom: 2.5rem; line-height: 1.6; }
-        .hero-cta { display: flex; gap: 1.5rem; flex-wrap: wrap; }
-        .btn { padding: 1rem 2.5rem; border-radius: 8px; font-size: 0.95rem; font-weight: 600; text-decoration: none; letter-spacing: 1px; text-transform: uppercase; transition: all 0.3s; position: relative; overflow: hidden; border: none; cursor: pointer; }
-        .btn-primary { background: linear-gradient(135deg, var(--neon-cyan), var(--neon-blue)); color: #000; box-shadow: 0 0 30px rgba(0,240,255,0.3); }
-        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 10px 40px rgba(0,240,255,0.5); }
-        .btn-secondary { background: transparent; color: var(--neon-cyan); border: 1px solid var(--neon-cyan); }
-        .btn-secondary:hover { background: rgba(0,240,255,0.1); transform: translateY(-3px); }
-        .scroll-indicator { position: absolute; bottom: 3rem; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 0.5rem; color: #8892b0; font-size: 0.8rem; letter-spacing: 2px; animation: bounce 2s infinite; }
-        @keyframes bounce { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(10px); } }
-        .scroll-line { width: 1px; height: 60px; background: linear-gradient(to bottom, var(--neon-cyan), transparent); }
-        .section-header { text-align: center; margin-bottom: 4rem; }
-        .section-tag { font-family: 'Orbitron', monospace; font-size: 0.8rem; color: var(--neon-cyan); letter-spacing: 4px; text-transform: uppercase; margin-bottom: 1rem; }
-        .section-title { font-family: 'Orbitron', monospace; font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 700; background: linear-gradient(135deg, #fff, #a0a0b0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .about-container { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; max-width: 1200px; width: 100%; }
-        .about-text { font-size: 1.1rem; line-height: 1.8; color: #a0a0b0; }
-        .about-text p { margin-bottom: 1.5rem; }
-        .about-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-top: 2rem; }
-        .stat-card { background: var(--glass); border: 1px solid rgba(0,240,255,0.1); border-radius: 16px; padding: 1.5rem; text-align: center; backdrop-filter: blur(10px); transition: all 0.3s; }
-        .stat-card:hover { border-color: rgba(0,240,255,0.3); transform: translateY(-5px); box-shadow: 0 10px 40px rgba(0,240,255,0.1); }
-        .stat-number { font-family: 'Orbitron', monospace; font-size: 2.5rem; font-weight: 900; background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .stat-label { font-size: 0.85rem; color: #8892b0; margin-top: 0.5rem; }
-        .card-3d-container { perspective: 1000px; }
-        .card-3d { background: linear-gradient(135deg, rgba(0,240,255,0.05), rgba(184,41,221,0.05)); border: 1px solid rgba(0,240,255,0.15); border-radius: 24px; padding: 3rem; backdrop-filter: blur(20px); transform-style: preserve-3d; transition: transform 0.1s; position: relative; overflow: hidden; }
-        .card-3d::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(0,240,255,0.1) 0%, transparent 70%); opacity: 0; transition: opacity 0.3s; }
-        .card-3d:hover::before { opacity: 1; }
-        .profile-img-placeholder { width: 150px; height: 150px; border-radius: 50%; background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple)); margin: 0 auto 1.5rem; display: flex; align-items: center; justify-content: center; font-family: 'Orbitron', monospace; font-size: 3rem; font-weight: 900; color: #000; box-shadow: 0 0 40px rgba(0,240,255,0.3); }
-        .skills-section { flex-direction: column; }
-        .skills-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; max-width: 1200px; width: 100%; }
-        .skill-category { background: var(--glass); border: 1px solid rgba(0,240,255,0.1); border-radius: 20px; padding: 2rem; backdrop-filter: blur(10px); transition: all 0.3s; }
-        .skill-category:hover { border-color: rgba(0,240,255,0.3); transform: translateY(-5px); box-shadow: 0 20px 60px rgba(0,240,255,0.1); }
-        .skill-category h3 { font-family: 'Orbitron', monospace; font-size: 1.1rem; color: var(--neon-cyan); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; }
-        .skill-tags { display: flex; flex-wrap: wrap; gap: 0.75rem; }
-        .skill-tag { padding: 0.5rem 1rem; background: rgba(0,240,255,0.08); border: 1px solid rgba(0,240,255,0.2); border-radius: 50px; font-size: 0.85rem; color: #c0c0d0; transition: all 0.3s; }
-        .skill-tag:hover { background: rgba(0,240,255,0.2); border-color: var(--neon-cyan); color: var(--neon-cyan); transform: scale(1.05); }
-        .projects-section { flex-direction: column; }
-        .projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 2.5rem; max-width: 1300px; width: 100%; }
-        .project-card { background: var(--card-bg); border: 1px solid rgba(0,240,255,0.1); border-radius: 20px; overflow: hidden; transition: all 0.4s; position: relative; transform-style: preserve-3d; }
-        .project-card:hover { transform: translateY(-10px) rotateX(5deg); border-color: rgba(0,240,255,0.3); box-shadow: 0 30px 60px rgba(0,0,0,0.5), 0 0 40px rgba(0,240,255,0.1); }
-        .project-header { padding: 2rem 2rem 1rem; position: relative; }
-        .project-icon { width: 50px; height: 50px; border-radius: 12px; background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple)); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1rem; }
-        .project-card h3 { font-family: 'Orbitron', monospace; font-size: 1.2rem; color: #fff; margin-bottom: 0.5rem; }
-        .project-tech { font-size: 0.8rem; color: var(--neon-cyan); letter-spacing: 1px; margin-bottom: 1rem; }
-        .project-desc { padding: 0 2rem; color: #a0a0b0; font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.5rem; }
-        .project-links { padding: 0 2rem 2rem; display: flex; gap: 1rem; }
-        .project-link { padding: 0.5rem 1.2rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600; text-decoration: none; letter-spacing: 1px; text-transform: uppercase; transition: all 0.3s; border: 1px solid rgba(0,240,255,0.3); color: var(--neon-cyan); background: transparent; }
-        .project-link:hover { background: rgba(0,240,255,0.1); transform: scale(1.05); }
-        .project-status { position: absolute; top: 1.5rem; right: 1.5rem; padding: 0.3rem 0.8rem; border-radius: 50px; font-size: 0.7rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
-        .status-live { background: rgba(0,255,136,0.15); color: #00ff88; border: 1px solid rgba(0,255,136,0.3); }
-        .status-dev { background: rgba(255,193,7,0.15); color: #ffc107; border: 1px solid rgba(255,193,7,0.3); }
-        .contact-section { flex-direction: column; min-height: 80vh; }
-        .contact-container { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; max-width: 1100px; width: 100%; align-items: center; }
-        .contact-info h2 { font-family: 'Orbitron', monospace; font-size: 2.5rem; margin-bottom: 1.5rem; background: linear-gradient(135deg, #fff, var(--neon-cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .contact-info p { color: #a0a0b0; font-size: 1.1rem; line-height: 1.8; margin-bottom: 2rem; }
-        .contact-links { display: flex; flex-direction: column; gap: 1rem; }
-        .contact-item { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.5rem; background: var(--glass); border: 1px solid rgba(0,240,255,0.1); border-radius: 12px; color: #c0c0d0; text-decoration: none; transition: all 0.3s; }
-        .contact-item:hover { border-color: var(--neon-cyan); background: rgba(0,240,255,0.05); transform: translateX(10px); }
-        .contact-item span:first-child { font-size: 1.3rem; }
-        footer { position: relative; z-index: 1; text-align: center; padding: 3rem; color: #555; font-size: 0.85rem; border-top: 1px solid rgba(0,240,255,0.05); }
-        footer span { color: var(--neon-cyan); }
-        .reveal { opacity: 0; transform: translateY(50px); }
-        @media (max-width: 1100px) {
-            .hero { flex-direction: column; text-align: center; }
-            .hero-3d { width: 100%; max-width: 500px; height: 350px; }
-            .hero-content { max-width: 100%; }
-            .hero-cta { justify-content: center; }
-            .about-container, .contact-container { grid-template-columns: 1fr; }
-            nav { padding: 1rem 2rem; }
-            .nav-links { display: none; }
-            section { padding: 4rem 2rem; }
-            .projects-grid { grid-template-columns: 1fr; }
-        }
-    </style>
-<base target="_blank">
+    <meta name="keywords" content="Mayur Datu Patil, portfolio, data science, AI ML engineer, RAG, LLM agents" />
+    <meta name="description" content="Mayur Datu Patil's portfolio: Data Science and AI/ML engineering projects focused on RAG systems and LLM agents." />
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="./assets/css/style.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" integrity="sha512-iBBXm8fW90+nuLcSKlbmrPcLa0OT92xO1BIsZ+ywDWZCvqsWgccV3gFoRBv0z+8dLJgyAHIhR35VZc2oM/gI1w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Favicon -->
+    <link id='favicon' rel="shortcut icon" href="./assets/images/favicon.png" type="image/x-png">
+    <title>Portfolio | Mayur Datu Patil</title>
 </head>
-<body>
+<body oncontextmenu="return false">
 
-    <div id="canvas-container"></div>
+<!-- pre loader -->
+<!-- <div class="loader-container">
+  <img draggable="false" src="./assets/images/preloader.gif" alt="">
+</div> -->
 
-    <nav>
-        <div class="logo">MP.</div>
-        <ul class="nav-links">
-            <li><a href="#home">Home</a></li>
+<!-- navbar starts -->
+<header>
+        <a href="/" class="logo"><i class="fas fa-brain"></i> Mayur</a>
+
+        <div id="menu" class="fas fa-bars"></div>
+        <nav class="navbar">
+            <ul>
+            <li><a class="active" href="#home">Home</a></li>
             <li><a href="#about">About</a></li>
             <li><a href="#skills">Skills</a></li>
-            <li><a href="#projects">Projects</a></li>
+            <li><a href="#education">Education</a></li>
+            <li><a href="#work">Work</a></li>
+            <li><a href="#experience">Experience</a></li>
             <li><a href="#contact">Contact</a></li>
+            </ul>
+        </nav>
+</header>
+<!-- navbar ends -->
+
+
+<!-- hero section starts -->
+<section class="home" id="home">
+    <div id="particles-js"></div>
+
+    <div class="content">
+    <h2>Hi There,<br/> I'm Mayur <span>Patil</span></h2>
+    <p>i am into <span class="typing-text"></span></p>
+    <a href="#about" class="btn"><span>About Me</span>
+      <i class="fas fa-arrow-circle-down"></i>
+    </a>
+    <div class="socials">
+        <ul class="social-icons">
+          <li><a class="linkedin" aria-label="LinkedIn" href="https://linkedin.com/in/mayur1007" target="_blank"><i class="fab fa-linkedin"></i></a></li>
+          <li><a class="github" aria-label="GitHub" href="https://github.com/mayur18-ai" target="_blank"><i class="fab fa-github"></i></a></li>
+          <li><a class="huggingface" aria-label="Hugging Face" href="https://huggingface.co/mayur10" target="_blank"><i class="fas fa-robot"></i></a></li>
+          <li><a class="email" aria-label="Email" href="mailto:mp5295136@gmail.com" target="_blank"><i class="fas fa-envelope"></i></a></li>
         </ul>
-    </nav>
+      </div>
+    </div>
+<div class="image">
+    <img draggable="false" class="tilt" src="./assets/images/hero-coding.png" alt="Coding workspace illustration">
+</div>
+</section>
+<!-- hero section ends -->
 
-    <section id="home" class="hero">
-        <div class="hero-content">
-            <div class="hero-badge reveal">Available for Opportunities</div>
-            <h1 class="reveal">MAYUR PATIL</h1>
-            <p class="hero-subtitle reveal">
-                Aspiring <strong>Data Science / AI & ML Engineer</strong> crafting intelligent systems 
-                with LangGraph, RAG pipelines, and modern full-stack technologies.
-            </p>
-            <div class="hero-cta reveal">
-                <a href="#projects" class="btn btn-primary">View Projects</a>
-                <a href="#contact" class="btn btn-secondary">Get in Touch</a>
+
+<!-- about section starts -->
+<section class="about" id="about">
+    <h2 class="heading"><i class="fas fa-user-alt"></i> About <span>Me</span></h2>
+    
+    <div class="row">
+
+    <div class="image">
+        <img draggable="false" class="tilt" src="./assets/images/profile2.png" alt="Mayur Datu Patil">
+    </div>
+    <div class="content">
+        <h3>I'm Mayur Datu Patil</h3>
+        <span class="tag">Data Science / AI &amp; ML Engineer</span>
+        
+        <p>I am a first-year B.Tech Computer Science student specializing in Data Science, based in Pune, India. I build production-style LLM applications, RAG pipelines, and full-stack products with Python, React, and Next.js. I enjoy working across the AI/ML pipeline, from embeddings and vector retrieval to evaluating and deploying LLM-powered agents.</p>
+        
+        <div class="box-container">
+            <!-- <div class="box">
+              <p><span> age: </span> 20</p>
+              <p><span> phone : </span> +91 XXX-XXX-XXXX</p>
+            </div> -->
+            <div class="box">
+              <p><span> email : </span> mp5295136@gmail.com</p>
+              <p><span> place : </span> Pune, Maharashtra</p>
             </div>
         </div>
-        <div class="hero-3d reveal" id="hero-3d-container">
-            <canvas id="scene3d-canvas"></canvas>
-            <div class="hero-3d-label">Interactive 3D Scene — Drag to Rotate</div>
+        
+        <div class="resumebtn">
+            <a href="mailto:mp5295136@gmail.com?subject=Resume%20request" target="_blank" class="btn"><span>Request Resume</span>
+                <i class="fas fa-chevron-right"></i>
+            </a>
         </div>
-        <div class="scroll-indicator reveal">
-            <span>SCROLL</span>
-            <div class="scroll-line"></div>
+
+    </div>
+    </div>
+</section>
+<!-- about section ends -->
+
+<!-- skills section starts -->
+<section class="skills" id="skills">
+
+    <h2 class="heading"><i class="fas fa-laptop-code"></i> Skills & <span>Abilities</span></h2>
+
+    <div class="container">
+          <div class="row" id="skillsContainer">
+
+            <!-- <div class="bar">
+              <div class="info">
+                <img src="https://img.icons8.com/color/48/000000/adobe-xd.png"/>
+                <span>AdobeXD</span>
+              </div>
+            </div> -->
+
+      </div>
+</div>
+</section>
+<!-- skills section ends -->
+
+
+<!-- education section starts -->
+<section class="education" id="education">
+
+  <h1 class="heading"><i class="fas fa-graduation-cap"></i> My <span>Education</span></h1>
+
+    <p class="qoute">Education is not the learning of facts, but the training of the mind to think.</p>
+
+    <div class="box-container">
+
+    <div class="box">
+        <div class="image">
+        <img draggable="false" src="./assets/images/educat/college.png" alt="NxtWave Institute logo">
         </div>
-    </section>
-
-    <section id="about">
-        <div class="about-container">
-            <div class="about-text reveal">
-                <div class="section-header" style="text-align: left; margin-bottom: 2rem;">
-                    <div class="section-tag">About Me</div>
-                    <h2 class="section-title" style="text-align: left;">The Mind Behind<br>The Machine</h2>
-                </div>
-                <p>I'm a first-year <strong>B.Tech CSE (Data Science)</strong> student at NxtWave Institute of Innovation in Advanced Technologies, expected to graduate in <strong>2029</strong>.</p>
-                <p>I build <strong>AI agents</strong> with LangGraph, design <strong>RAG pipelines</strong> with ChromaDB, and deploy interactive apps on Hugging Face Spaces. From vector embeddings to full-stack React/Next.js applications — I thrive across the entire ML/AI pipeline.</p>
-                <p>When I'm not training models, I'm founding startups like <strong>TrekHub</strong> or competing in hackathons like <strong>HackOverFlow (CultRang '26)</strong> and <strong>Changethon @ IIT Roorkee</strong>.</p>
-                <div class="about-stats">
-                    <div class="stat-card"><div class="stat-number">6+</div><div class="stat-label">Projects Built</div></div>
-                    <div class="stat-card"><div class="stat-number">2+</div><div class="stat-label">Hackathons</div></div>
-                    <div class="stat-card"><div class="stat-number">15+</div><div class="stat-label">Tech Stack</div></div>
-                    <div class="stat-card"><div class="stat-number">1</div><div class="stat-label">Startup Founded</div></div>
-                </div>
-            </div>
-            <div class="card-3d-container reveal">
-                <div class="card-3d" id="about-card">
-                    <div class="profile-img-placeholder">MP</div>
-                    <h3 style="font-family: Orbitron; text-align: center; margin-bottom: 0.5rem;">Mayur Patil</h3>
-                    <p style="text-align: center; color: var(--neon-cyan); font-size: 0.9rem; margin-bottom: 1.5rem;">AI / ML Engineer</p>
-                    <div style="display: flex; justify-content: center; gap: 1rem;">
-                        <a href="https://linkedin.com/in/mayur1007" target="_blank" class="project-link">LinkedIn</a>
-                        <a href="mailto:mp5295136@gmail.com" class="project-link">Email</a>
-                    </div>
-                </div>
-            </div>
+        <div class="content">
+        <h3>B.Tech in Computer Science &amp; Engineering (Data Science)</h3>
+        <p>NxtWave Institute of Innovation in Advanced Technologies</p>
+        <h4>Expected graduation: 2029</h4>
         </div>
-    </section>
+    </div>
 
-    <section id="skills" class="skills-section">
-        <div class="section-header reveal">
-            <div class="section-tag">Expertise</div>
-            <h2 class="section-title">Technical Arsenal</h2>
+</div>
+</section>
+<!-- education section ends -->
+
+
+<!-- work project section starts -->
+<section class="work" id="work">
+
+  <h2 class="heading"><i class="fas fa-laptop-code"></i> Projects <span>Made</span></h2>
+
+  <div class="box-container">
+
+    <!-- <div class="box tilt">
+      <img draggable="false" src="./assets/images/projects/portfolio1.PNG" alt="" />
+      <div class="content">
+        <div class="tag">
+        <h3>Portfolio Website</h3>
         </div>
-        <div class="skills-grid">
-            <div class="skill-category reveal">
-                <h3>🤖 AI / ML / Data</h3>
-                <div class="skill-tags">
-                    <span class="skill-tag">LangGraph</span><span class="skill-tag">RAG Pipelines</span><span class="skill-tag">ChromaDB</span>
-                    <span class="skill-tag">HuggingFace Embeddings</span><span class="skill-tag">LLaMA 3.3</span><span class="skill-tag">Groq API</span>
-                    <span class="skill-tag">Prompt Engineering</span><span class="skill-tag">NumPy</span><span class="skill-tag">Pandas</span>
-                </div>
-            </div>
-            <div class="skill-category reveal">
-                <h3>💻 Languages</h3>
-                <div class="skill-tags">
-                    <span class="skill-tag">Python</span><span class="skill-tag">JavaScript</span><span class="skill-tag">TypeScript</span><span class="skill-tag">SQL</span>
-                </div>
-            </div>
-            <div class="skill-category reveal">
-                <h3>🌐 Web Development</h3>
-                <div class="skill-tags">
-                    <span class="skill-tag">React</span><span class="skill-tag">Next.js 14/15</span><span class="skill-tag">Node.js</span>
-                    <span class="skill-tag">Tailwind CSS</span><span class="skill-tag">REST APIs</span><span class="skill-tag">Framer Motion</span><span class="skill-tag">Gradio</span>
-                </div>
-            </div>
-            <div class="skill-category reveal">
-                <h3>🗄️ Databases</h3>
-                <div class="skill-tags">
-                    <span class="skill-tag">PostgreSQL</span><span class="skill-tag">MongoDB</span><span class="skill-tag">Drizzle ORM</span>
-                    <span class="skill-tag">Supabase</span><span class="skill-tag">ChromaDB</span>
-                </div>
-            </div>
-            <div class="skill-category reveal">
-                <h3>🛠️ Tools & Platforms</h3>
-                <div class="skill-tags">
-                    <span class="skill-tag">Git / GitHub</span><span class="skill-tag">Hugging Face Spaces</span>
-                    <span class="skill-tag">VS Code</span><span class="skill-tag">Vercel</span><span class="skill-tag">Expo</span>
-                </div>
-            </div>
-            <div class="skill-category reveal">
-                <h3>🧠 Core CS</h3>
-                <div class="skill-tags">
-                    <span class="skill-tag">Data Structures & Algorithms</span><span class="skill-tag">DBMS</span>
-                    <span class="skill-tag">Linear Algebra</span><span class="skill-tag">Calculus for ML</span>
-                </div>
-            </div>
+        <div class="desc">
+          <p>Personal portfolio website. Don't need much info about it, just scroll down. You're here only!</p>
+          <div class="btns">
+            <a href="#" class="btn" target="_blank"><i class="fas fa-eye"></i> View</a>
+            <a href="https://github.com/mayur18-ai" class="btn" target="_blank">Code <i class="fas fa-code"></i></a>
+          </div>
         </div>
-    </section>
+      </div>
+    </div> -->
 
-    <section id="projects" class="projects-section">
-        <div class="section-header reveal">
-            <div class="section-tag">Portfolio</div>
-            <h2 class="section-title">Featured Projects</h2>
+</div>
+
+<div class="viewall">
+  <a href="/projects" class="btn"><span>View All</span>
+    <i class="fas fa-arrow-right"></i>
+</a>
+</div>
+
+</section>
+<!-- work project section ends -->
+
+<!-- experience section starts -->
+<section class="experience" id="experience">
+
+  <h2 class="heading"><i class="fas fa-briefcase"></i> Activities &amp; <span>Involvement</span></h2>
+
+  <div class="timeline">
+
+    <div class="container right">
+      <div class="content">
+        <div class="tag">
+          <h2>HackOverFlow</h2>
         </div>
-        <div class="projects-grid">
-            <div class="project-card reveal">
-                <div class="project-header">
-                    <span class="project-status status-live">Live</span>
-                    <div class="project-icon">📝</div>
-                    <h3>AI Resume Forge</h3>
-                    <div class="project-tech">Groq API · LLaMA 3.3 70B · Gradio · Hugging Face</div>
-                </div>
-                <p class="project-desc">LLM-powered tool that generates tailored resumes and cover letters from user profile data, target role, and job descriptions. Features a custom Gradio interface with multi-tab workflow and structured prompts grounded in actual skills.</p>
-                <div class="project-links"><a href="#" class="project-link">Live Demo</a><a href="#" class="project-link">GitHub</a></div>
-            </div>
-            <div class="project-card reveal">
-                <div class="project-header">
-                    <span class="project-status status-live">Live</span>
-                    <div class="project-icon">🧠</div>
-                    <h3>AI Agent + RAG System</h3>
-                    <div class="project-tech">LangGraph · ChromaDB · LLaMA 3.3 · HuggingFace</div>
-                </div>
-                <p class="project-desc">Retrieval-augmented generation pipeline combining an LLM agent with vector database for semantic search. Uses LangGraph for multi-step reasoning, ChromaDB for document indexing, and an interactive Gradio interface for real-time querying.</p>
-                <div class="project-links"><a href="#" class="project-link">Live Demo</a><a href="#" class="project-link">Report</a></div>
-            </div>
-            <div class="project-card reveal">
-                <div class="project-header">
-                    <span class="project-status status-live">Live</span>
-                    <div class="project-icon">🔊</div>
-                    <h3>VisionVoice AI</h3>
-                    <div class="project-tech">Web Speech API · MediaDevices API · JavaScript · Vercel</div>
-                </div>
-                <p class="project-desc">Voice-controlled accessibility app for visually impaired users. Real-time navigation via voice commands, live camera environment scanning, camera flip, emergency alerts, and multi-language support (English/Hindi).</p>
-                <div class="project-links"><a href="#" class="project-link">Live App</a><a href="#" class="project-link">GitHub</a></div>
-            </div>
-            <div class="project-card reveal">
-                <div class="project-header">
-                    <span class="project-status status-dev">In Dev</span>
-                    <div class="project-icon">🏔️</div>
-                    <h3>TrekHub</h3>
-                    <div class="project-tech">Next.js 15 · Expo · PostgreSQL · Drizzle ORM</div>
-                </div>
-                <p class="project-desc">India-focused adventure travel marketplace enabling side-by-side comparison of trip organizers. Founder-led product with full database schema, web + mobile apps, UI mockups, and go-to-market strategy. Core differentiator: organizer-vs-organizer comparison.</p>
-                <div class="project-links"><a href="#" class="project-link">Preview</a><a href="#" class="project-link">Details</a></div>
-            </div>
-            <div class="project-card reveal">
-                <div class="project-header">
-                    <span class="project-status status-live">Hackathon</span>
-                    <div class="project-icon">🎨</div>
-                    <h3>SketchQuest</h3>
-                    <div class="project-tech">React Native · Expo · 8x Engineer Hackathon</div>
-                </div>
-                <p class="project-desc">Gamified drawing lessons mobile app with XP system, skill tree progression, and before/after gallery for tracking improvement. Built complete brand system and development roadmap for contest submission.</p>
-                <div class="project-links"><a href="#" class="project-link">Demo</a><a href="#" class="project-link">GitHub</a></div>
-            </div>
-            <div class="project-card reveal">
-                <div class="project-header">
-                    <span class="project-status status-live">Live</span>
-                    <div class="project-icon">📊</div>
-                    <h3>Next.js Learning Dashboard</h3>
-                    <div class="project-tech">Next.js 14 · Supabase · TypeScript · Framer Motion</div>
-                </div>
-                <p class="project-desc">Full-stack learning dashboard with Supabase backend, animated UI using Framer Motion, and end-to-end TypeScript for type safety. Resolved complex framework and environment-specific build/deployment issues for production readiness.</p>
-                <div class="project-links"><a href="#" class="project-link">Live Demo</a><a href="#" class="project-link">GitHub</a></div>
-            </div>
+        <div class="desc">
+            <h3>Participant | CultRang '26</h3>
+            <p>2026</p>
         </div>
-    </section>
+      </div>
+    </div>
 
-    <section id="contact" class="contact-section">
-        <div class="contact-container">
-            <div class="contact-info reveal">
-                <h2>Let's Build<br>Something<br>Intelligent.</h2>
-                <p>I'm always excited to collaborate on AI/ML projects, hackathons, or innovative startups. Whether it's a RAG pipeline, an AI agent, or a full-stack application — let's create impact together.</p>
-                <div class="contact-links">
-                    <a href="mailto:mp5295136@gmail.com" class="contact-item"><span>📧</span><span>mp5295136@gmail.com</span></a>
-                    <a href="tel:+919890481145" class="contact-item"><span>📱</span><span>+91 98904 81145</span></a>
-                    <a href="https://linkedin.com/in/mayur1007" target="_blank" class="contact-item"><span>💼</span><span>linkedin.com/in/mayur1007</span></a>
-                    <a href="#" class="contact-item"><span>📍</span><span>Pune, Maharashtra, India</span></a>
-                </div>
-            </div>
-            <div class="card-3d-container reveal">
-                <div class="card-3d" id="contact-card" style="text-align: center; padding: 4rem 3rem;">
-                    <div style="font-size: 4rem; margin-bottom: 1.5rem;">🚀</div>
-                    <h3 style="font-family: Orbitron; font-size: 1.5rem; margin-bottom: 1rem; color: #fff;">Open to Opportunities</h3>
-                    <p style="color: #a0a0b0; margin-bottom: 2rem; line-height: 1.6;">Internships · Freelance · Collaborations · Hackathons</p>
-                    <a href="mailto:mp5295136@gmail.com" class="btn btn-primary" style="display: inline-block;">Start a Conversation</a>
-                </div>
-            </div>
+    <div class="container left">
+      <div class="content">
+        <div class="tag">
+          <h2>Changethon</h2>
         </div>
-    </section>
+        <div class="desc">
+            <h3>Participant | National Social Summit, IIT Roorkee</h3>
+            <p>2026</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="container right">
+      <div class="content">
+        <div class="tag">
+          <h2>AI / ML Focus</h2>
+        </div>
+        <div class="desc">
+            <h3>RAG pipelines, LLM agents &amp; applied machine learning</h3>
+            <p>Current focus</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="container left">
+      <div class="content">
+        <div class="tag">
+          <h2>Open to Opportunities</h2>
+        </div>
+        <div class="desc">
+            <h3>Data Science / AI-ML engineering internships</h3>
+            <p>Available for collaboration</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="container right">
+      <div class="content">
+        <div class="tag">
+          <h2>Full-Stack Builder</h2>
+        </div>
+        <div class="desc">
+            <h3>Python, React, Next.js and TypeScript projects</h3>
+            <p>Current focus</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="container left">
+      <div class="content">
+        <div class="tag">
+          <h2>Community &amp; Learning</h2>
+        </div>
+        <div class="desc">
+            <h3>Building, documenting and deploying practical AI products</h3>
+            <p>Current focus</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="morebtn">
+    <a href="/experience" class="btn"><span>View All</span>
+      <i class="fas fa-arrow-right"></i>
+  </a>
+  </div>
+
+</div>
+
+</section>
+<!-- experience section ends -->
+
+<!-- contact section starts -->
+<section class="contact" id="contact">
+  
+  <h2 class="heading"><i class="fas fa-headset"></i> Get in <span>Touch</span></h2>
+
+  <div class="container">
+    <div class="content">
+      <div class="image-box">
+        <img draggable="false" src="./assets/images/contact1.png" alt="">
+      </div>
+    <form id="contact-form">
+      
+      <div class="form-group">
+        <div class="field">
+          <input type="text" name="name" placeholder="Name" required>
+          <i class='fas fa-user'></i>
+        </div>
+        <div class="field">
+          <input type="text" name="email" placeholder="Email" required>
+          <i class='fas fa-envelope'></i>
+        </div>
+        <div class="field">
+          <input type="text" name="phone" placeholder="Phone">
+          <i class='fas fa-phone-alt'></i>
+        </div>
+        <div class="message">
+        <textarea placeholder="Message" name="message" required></textarea>
+        <i class="fas fa-comment-dots"></i>
+        </div>
+        </div>
+      <div class="button-area">
+        <button type="submit">
+          Submit <i class="fa fa-paper-plane"></i></button>
+      </div>
+    </form>
+  </div>
+  </div>
+</section>
+<!-- contact section ends -->
 
-    <footer>
-        <p>Built with <span>Three.js</span>, <span>GSAP</span>, and caffeine by <span>Mayur Patil</span> © 2026</p>
-    </footer>
 
-    <script>
-    const ResourceManager = {
-        disposables: [], rafIds: [], listeners: [], timers: [],
-        addDisposable(obj) { if (obj && typeof obj.dispose === 'function') this.disposables.push(obj); return obj; },
-        addRAF(id) { this.rafIds.push(id); },
-        addListener(target, type, handler, opts) { target.addEventListener(type, handler, opts); this.listeners.push({ target, type, handler, opts }); },
-        addTimer(id) { this.timers.push(id); },
-        disposeAll() {
-            this.disposables.forEach(d => { try { d.dispose(); } catch(e) {} });
-            this.rafIds.forEach(id => cancelAnimationFrame(id));
-            this.listeners.forEach(({ target, type, handler, opts }) => target.removeEventListener(type, handler, opts));
-            this.timers.forEach(id => clearTimeout(id));
-        }
-    };
-    function throttleRAF(fn) { let ticking = false; return function(...args) { if (!ticking) { requestAnimationFrame(() => { fn.apply(this, args); ticking = false; }); ticking = true; } }; }
-    function debounce(fn, ms) { let t; return function(...args) { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), ms); }; }
-    let isPageVisible = true, isHeroVisible = true;
-    ResourceManager.addListener(document, 'visibilitychange', () => { isPageVisible = document.visibilityState === 'visible'; });
-    const heroObserver = new IntersectionObserver((entries) => { isHeroVisible = entries[0].isIntersecting; }, { threshold: 0.1 });
-    const heroContainer = document.getElementById('hero-3d-container');
-    if (heroContainer) heroObserver.observe(heroContainer);
+<!-- footer section starts -->
+<section class="footer">
 
-    // BACKGROUND NEURAL NETWORK
-    const bgContainer = document.getElementById('canvas-container');
-    const bgScene = new THREE.Scene();
-    const bgCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const bgRenderer = ResourceManager.addDisposable(new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: 'low-power' }));
-    bgRenderer.setSize(window.innerWidth, window.innerHeight);
-    bgRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-    bgContainer.appendChild(bgRenderer.domElement);
-    bgCamera.position.z = 30;
+  <div class="box-container">
 
-    const NODE_COUNT = 50, CONNECTION_DIST = 10;
-    const nodePositions = new Float32Array(NODE_COUNT * 3);
-    const nodeVelocities = [], nodeColors = new Float32Array(NODE_COUNT * 3);
-    for (let i = 0; i < NODE_COUNT; i++) {
-        nodePositions[i*3] = (Math.random()-0.5)*60; nodePositions[i*3+1] = (Math.random()-0.5)*60; nodePositions[i*3+2] = (Math.random()-0.5)*40;
-        nodeVelocities.push({ x:(Math.random()-0.5)*0.015, y:(Math.random()-0.5)*0.015, z:(Math.random()-0.5)*0.008 });
-    }
-    const nodeGeo = ResourceManager.addDisposable(new THREE.BufferGeometry());
-    nodeGeo.setAttribute('position', new THREE.BufferAttribute(nodePositions, 3));
-    nodeGeo.setAttribute('color', new THREE.BufferAttribute(nodeColors, 3));
-    const nodePoints = new THREE.Points(nodeGeo, new THREE.PointsMaterial({ size: 0.25, vertexColors: true, transparent: true, opacity: 0.9, sizeAttenuation: true }));
-    bgScene.add(nodePoints);
+      <div class="box">
+          <h3>Mayur's Portfolio</h3>
+          <p>Thank you for visiting my personal portfolio website. Connect with me over socials. <br/> <br/> Keep Rising 🚀. Connect with me over live chat!</p>
+      </div>
 
-    const MAX_CONNECTIONS = Math.floor(NODE_COUNT*(NODE_COUNT-1)/2);
-    const connPositions = new Float32Array(MAX_CONNECTIONS*6);
-    const connColors = new Float32Array(MAX_CONNECTIONS*6);
-    const connGeo = ResourceManager.addDisposable(new THREE.BufferGeometry());
-    connGeo.setAttribute('position', new THREE.BufferAttribute(connPositions, 3));
-    connGeo.setAttribute('color', new THREE.BufferAttribute(connColors, 3));
-    const connLines = new THREE.LineSegments(connGeo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.15, blending: THREE.AdditiveBlending, depthWrite: false }));
-    bgScene.add(connLines);
+      <div class="box">
+          <h3>quick links</h3>
+          <a href="#home"><i class="fas fa-chevron-circle-right"></i> home</a>
+          <a href="#about"><i class="fas fa-chevron-circle-right"></i> about</a>
+          <a href="#skills"><i class="fas fa-chevron-circle-right"></i> skills</a>
+          <a href="#education"><i class="fas fa-chevron-circle-right"></i> education</a>
+          <a href="#work"><i class="fas fa-chevron-circle-right"></i> work</a>
+          <a href="#experience"><i class="fas fa-chevron-circle-right"></i> experience</a>
+      </div>
 
-    const BG_PARTICLE_COUNT = 100;
-    const bgParticlePositions = new Float32Array(BG_PARTICLE_COUNT*3);
-    for (let i = 0; i < BG_PARTICLE_COUNT*3; i++) bgParticlePositions[i] = (Math.random()-0.5)*100;
-    const bgParticleGeo = ResourceManager.addDisposable(new THREE.BufferGeometry());
-    bgParticleGeo.setAttribute('position', new THREE.BufferAttribute(bgParticlePositions, 3));
-    const bgParticles = new THREE.Points(bgParticleGeo, new THREE.PointsMaterial({ color: 0xb829dd, size: 0.12, transparent: true, opacity: 0.5, sizeAttenuation: true }));
-    bgScene.add(bgParticles);
+      <div class="box">
+          <h3>contact info</h3>
+          <p> <i class="fas fa-phone"></i>+91 98904 81145</p>
+          <p> <i class="fas fa-envelope"></i>mp5295136@gmail.com</p>
+          <p> <i class="fas fa-map-marked-alt"></i>Pune, Maharashtra</p>
+          <div class="share">
 
-    let mouseX = 0, mouseY = 0;
-    ResourceManager.addListener(document, 'mousemove', throttleRAF((e) => {
-        mouseX = (e.clientX/window.innerWidth-0.5)*2; mouseY = (e.clientY/window.innerHeight-0.5)*2;
-    }), { passive: true });
+              <a href="https://linkedin.com/in/mayur1007" class="fab fa-linkedin" aria-label="LinkedIn" target="_blank"></a>
+              <a href="https://github.com/mayur18-ai" class="fab fa-github" aria-label="GitHub" target="_blank"></a>
+              <a href="mailto:mp5295136@gmail.com" class="fas fa-envelope" aria-label="Mail" target="_blank"></a>
+              <a href="https://huggingface.co/mayur10" class="fas fa-robot" aria-label="Hugging Face" target="_blank"></a>
+          </div>
+      </div>
+  </div>
 
-    let bgFrame = 0;
-    function animateBg() { requestAnimationFrame(animateBg); if (!isPageVisible) return; bgFrame++;
-        const posArr = nodeGeo.attributes.position.array, colArr = nodeGeo.attributes.color.array;
-        for (let i = 0; i < NODE_COUNT; i++) {
-            const ix=i*3, iy=i*3+1, iz=i*3+2;
-            posArr[ix]+=nodeVelocities[i].x; posArr[iy]+=nodeVelocities[i].y; posArr[iz]+=nodeVelocities[i].z;
-            if (Math.abs(posArr[ix])>30) nodeVelocities[i].x*=-1; if (Math.abs(posArr[iy])>30) nodeVelocities[i].y*=-1; if (Math.abs(posArr[iz])>20) nodeVelocities[i].z*=-1;
-            const dx=posArr[ix]-mouseX*20, dy=posArr[iy]+mouseY*20, dist2d=Math.sqrt(dx*dx+dy*dy);
-            if (dist2d<10) { posArr[ix]+=dx*0.008; posArr[iy]+=dy*0.008; }
-            const rgb = new THREE.Color().setHSL(0.5+((posArr[iz]+20)/40)*0.2, 1, 0.5);
-            colArr[ix]=rgb.r; colArr[iy]=rgb.g; colArr[iz]=rgb.b;
-        }
-        nodeGeo.attributes.position.needsUpdate = true; nodeGeo.attributes.color.needsUpdate = true;
-        if (bgFrame%5===0) {
-            let ci = 0;
-            for (let i = 0; i < NODE_COUNT && ci < MAX_CONNECTIONS; i++) {
-                for (let j = i+1; j < NODE_COUNT && ci < MAX_CONNECTIONS; j++) {
-                    const dx=posArr[i*3]-posArr[j*3], dy=posArr[i*3+1]-posArr[j*3+1], dz=posArr[i*3+2]-posArr[j*3+2];
-                    const distSq = dx*dx+dy*dy+dz*dz;
-                    if (distSq < CONNECTION_DIST*CONNECTION_DIST) {
-                        const alpha = (1-Math.sqrt(distSq)/CONNECTION_DIST)*0.3;
-                        connPositions[ci*6]=posArr[i*3]; connPositions[ci*6+1]=posArr[i*3+1]; connPositions[ci*6+2]=posArr[i*3+2];
-                        connPositions[ci*6+3]=posArr[j*3]; connPositions[ci*6+4]=posArr[j*3+1]; connPositions[ci*6+5]=posArr[j*3+2];
-                        connColors[ci*6]=0; connColors[ci*6+1]=alpha; connColors[ci*6+2]=alpha;
-                        connColors[ci*6+3]=0; connColors[ci*6+4]=alpha; connColors[ci*6+5]=alpha;
-                        ci++;
-                    }
-                }
-            }
-            for (let k = ci; k < MAX_CONNECTIONS; k++) { connPositions[k*6]=0; connPositions[k*6+1]=0; connPositions[k*6+2]=0; connPositions[k*6+3]=0; connPositions[k*6+4]=0; connPositions[k*6+5]=0; }
-            connGeo.attributes.position.needsUpdate = true; connGeo.attributes.color.needsUpdate = true; connGeo.setDrawRange(0, ci*2);
-        }
-        bgParticles.rotation.y += 0.0003; bgParticles.rotation.x += 0.0001;
-        bgCamera.position.x += (mouseX*2 - bgCamera.position.x)*0.015;
-        bgCamera.position.y += (-mouseY*2 - bgCamera.position.y)*0.015;
-        bgCamera.lookAt(bgScene.position); bgRenderer.render(bgScene, bgCamera);
-    }
-    animateBg();
-    ResourceManager.addListener(window, 'resize', debounce(() => { bgCamera.aspect = window.innerWidth/window.innerHeight; bgCamera.updateProjectionMatrix(); bgRenderer.setSize(window.innerWidth, window.innerHeight); }, 100), { passive: true });
+  <h1 class="credit">Designed with <i class="fa fa-heart pulse"></i> by <a href="https://linkedin.com/in/mayur1007"> Mayur Datu Patil</a></h1>
 
-    // 3D CHARACTER WORKSPACE
-    const scene3dContainer = document.getElementById('hero-3d-container');
-    const scene3dCanvas = document.getElementById('scene3d-canvas');
-    const scene3d = new THREE.Scene();
-    scene3d.background = new THREE.Color(0x080810);
+</section>
+<!-- footer section ends -->
 
-    const scene3dCamera = new THREE.PerspectiveCamera(45, scene3dContainer.clientWidth/scene3dContainer.clientHeight, 0.1, 100);
-    scene3dCamera.position.set(8, 6, 10);
-    scene3dCamera.lookAt(0, 1, 0);
 
-    const scene3dRenderer = ResourceManager.addDisposable(new THREE.WebGLRenderer({ canvas: scene3dCanvas, antialias: true, alpha: true, powerPreference: 'high-performance' }));
-    scene3dRenderer.setSize(scene3dContainer.clientWidth, scene3dContainer.clientHeight);
-    scene3dRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    scene3dRenderer.shadowMap.enabled = true;
-    scene3dRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
+<!-- scroll top btn -->
+<a href="#home" aria-label="ScrollTop" class="fas fa-angle-up" id="scroll-top"></a>
+<!-- scroll back to top -->
 
-    const ambientLight = new THREE.AmbientLight(0x404060, 0.6);
-    scene3d.add(ambientLight);
-    const mainLight = new THREE.DirectionalLight(0x00f0ff, 0.7);
-    mainLight.position.set(5, 10, 5); mainLight.castShadow = true;
-    mainLight.shadow.mapSize.width = 1024; mainLight.shadow.mapSize.height = 1024;
-    mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 25;
-    scene3d.add(mainLight);
-    const fillLight = new THREE.PointLight(0xb829dd, 0.4, 15);
-    fillLight.position.set(-5, 5, -5); scene3d.add(fillLight);
 
-    // Materials
-    const materials = {
-        skin: new THREE.MeshLambertMaterial({ color: 0xffdbac }),
-        shirt: new THREE.MeshLambertMaterial({ color: 0x1a1a2e }),
-        pants: new THREE.MeshLambertMaterial({ color: 0x16213e }),
-        desk: new THREE.MeshLambertMaterial({ color: 0x2d2d44 }),
-        laptop: new THREE.MeshStandardMaterial({ color: 0x888899, roughness: 0.3, metalness: 0.8 }),
-        screenGlow: new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.3 }),
-        chair: new THREE.MeshLambertMaterial({ color: 0x1a1a2e }),
-        hair: new THREE.MeshLambertMaterial({ color: 0x1a0a00 }),
-        cap: new THREE.MeshLambertMaterial({ color: 0x1e3a5f }), // Dark blue cap
-        capBrim: new THREE.MeshLambertMaterial({ color: 0x1e3a5f }),
-        mug: new THREE.MeshLambertMaterial({ color: 0xffffff }),
-        coffee: new THREE.MeshBasicMaterial({ color: 0x3d2314 }),
-        plantPot: new THREE.MeshLambertMaterial({ color: 0xc4703a }),
-        plantGreen: new THREE.MeshLambertMaterial({ color: 0x2d5016 }),
-        glasses: new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.15 }),
-        glassesFrame: new THREE.MeshStandardMaterial({ color: 0x333344, metalness: 0.8 }),
-        keys: new THREE.MeshLambertMaterial({ color: 0x222233 }),
-        codeLine: new THREE.MeshBasicMaterial({ color: 0x00ff88 }),
-        floor: new THREE.MeshLambertMaterial({ color: 0x0a0a15 }),
-        wall: new THREE.MeshLambertMaterial({ color: 0x0d0d1a }),
-        book1: new THREE.MeshLambertMaterial({ color: 0x8b4513 }),
-        book2: new THREE.MeshLambertMaterial({ color: 0x2e4053 }),
-        book3: new THREE.MeshLambertMaterial({ color: 0x1e3a5f }),
-        lampMetal: new THREE.MeshStandardMaterial({ color: 0x333344, metalness: 0.8 }),
-        steam: new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.25 }),
-    };
-    Object.values(materials).forEach(m => ResourceManager.addDisposable(m));
+<!-- ==== ALL MAJOR JAVASCRIPT CDNS STARTS ==== -->
+<!-- jquery cdn -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
-    const workspaceGroup = new THREE.Group();
-    scene3d.add(workspaceGroup);
+<!-- typed.js cdn -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/typed.js/2.0.5/typed.min.js" integrity="sha512-1KbKusm/hAtkX5FScVR5G36wodIMnVd/aP04af06iyQTkD17szAMGNmxfNH+tEuFp3Og/P5G32L1qEC47CZbUQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
-    // Shared geometries
-    const boxGeo = ResourceManager.addDisposable(new THREE.BoxGeometry(1, 1, 1));
-    const cylGeo = ResourceManager.addDisposable(new THREE.CylinderGeometry(1, 1, 1, 8));
-    const sphereGeo = ResourceManager.addDisposable(new THREE.SphereGeometry(1, 12, 12));
+<!-- particle.js links -->
+<script src="./assets/js/particles.min.js"></script>
+<script src="./assets/js/app.js"></script>
 
-    function createBox(w, h, d, mat, x, y, z, rx, ry, rz, castShadow) {
-        const mesh = new THREE.Mesh(boxGeo, mat);
-        mesh.scale.set(w, h, d); mesh.position.set(x, y, z);
-        if (rx) mesh.rotation.x = rx; if (ry) mesh.rotation.y = ry; if (rz) mesh.rotation.z = rz;
-        if (castShadow) mesh.castShadow = true;
-        return mesh;
-    }
+<!-- vanilla tilt.js links -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.7.0/vanilla-tilt.min.js" integrity="sha512-SttpKhJqONuBVxbRcuH0wezjuX+BoFoli0yPsnrAADcHsQMW8rkR84ItFHGIkPvhnlRnE2FaifDOUw+EltbuHg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
-    // DESK
-    workspaceGroup.add(createBox(6, 0.15, 3, materials.desk, 0, 1.5, 0, 0, 0, 0, true));
-    const legPos = [[-2.8,0.75,1.3],[2.8,0.75,1.3],[-2.8,0.75,-1.3],[2.8,0.75,-1.3]];
-    legPos.forEach(p => workspaceGroup.add(createBox(0.1, 1.5, 0.1, materials.desk, p[0], p[1], p[2], 0, 0, 0, true)));
+<!-- scroll reveal anim -->
+<script src="https://unpkg.com/scrollreveal"></script>
 
-    // CHAIR
-    workspaceGroup.add(createBox(1.2, 0.1, 1.2, materials.chair, 0, 0.8, 1.2, 0, 0, 0, true));
-    workspaceGroup.add(createBox(1.2, 1.2, 0.1, materials.chair, 0, 1.4, 1.7, 0, 0, 0, true));
-    const chairStem = new THREE.Mesh(cylGeo, materials.chair); chairStem.scale.set(0.08, 0.8, 0.08); chairStem.position.set(0, 0.4, 1.2); workspaceGroup.add(chairStem);
-    const chairBase = new THREE.Mesh(cylGeo, materials.chair); chairBase.scale.set(0.6, 0.05, 0.6); chairBase.position.set(0, 0.025, 1.2); workspaceGroup.add(chairBase);
+<script
+      type="text/javascript"
+      src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"
+    ></script>
 
-    // ============================================
-    // CHARACTER - FACING LAPTOP (-z direction)
-    // ============================================
-    const characterGroup = new THREE.Group();
-    characterGroup.position.set(0, 0.85, 1.2);
-    characterGroup.rotation.y = Math.PI; // Face toward -z (toward laptop)
-    workspaceGroup.add(characterGroup);
+<!-- ==== ALL MAJOR JAVASCRIPT CDNS ENDS ==== -->
 
-    // Torso
-    characterGroup.add(createBox(0.9, 1.2, 0.5, materials.shirt, 0, 0.6, 0, 0, 0, 0, true));
+<script src="./assets/js/script.js"></script>
 
-    // Head group
-    const headGroup = new THREE.Group();
-    headGroup.position.set(0, 1.4, 0);
-    characterGroup.add(headGroup);
-
-    // Head
-    const head = new THREE.Mesh(sphereGeo, materials.skin);
-    head.scale.set(0.35, 0.35, 0.35); head.castShadow = true;
-    headGroup.add(head);
-
-    // ============================================
-    // HAIR - VISIBLE FROM BACK
-    // ============================================
-    // Main hair volume on top
-    const hairTop = new THREE.Mesh(sphereGeo, materials.hair);
-    hairTop.scale.set(0.37, 0.32, 0.37);
-    hairTop.position.set(0, 0.1, -0.02);
-    headGroup.add(hairTop);
-
-    // Back hair (visible from behind)
-    const hairBack = new THREE.Mesh(sphereGeo, materials.hair);
-    hairBack.scale.set(0.36, 0.28, 0.22);
-    hairBack.position.set(0, 0.02, -0.18);
-    headGroup.add(hairBack);
-
-    // Side hair left
-    const hairSideL = new THREE.Mesh(sphereGeo, materials.hair);
-    hairSideL.scale.set(0.1, 0.22, 0.28);
-    hairSideL.position.set(-0.3, 0.0, -0.05);
-    headGroup.add(hairSideL);
-
-    // Side hair right
-    const hairSideR = new THREE.Mesh(sphereGeo, materials.hair);
-    hairSideR.scale.set(0.1, 0.22, 0.28);
-    hairSideR.position.set(0.3, 0.0, -0.05);
-    headGroup.add(hairSideR);
-
-    // ============================================
-    // CAP - DARK BLUE BASEBALL CAP
-    // ============================================
-    // Cap dome (cylinder, slightly flattened)
-    const capDome = new THREE.Mesh(cylGeo, materials.cap);
-    capDome.scale.set(0.36, 0.14, 0.36);
-    capDome.position.set(0, 0.28, 0.02);
-    headGroup.add(capDome);
-
-    // Cap brim/visor - pointing toward laptop (+z in local space)
-    const capBrim = new THREE.Mesh(boxGeo, materials.capBrim);
-    capBrim.scale.set(0.42, 0.025, 0.28);
-    capBrim.position.set(0, 0.22, 0.28);
-    capBrim.rotation.x = -0.18; // Angled down slightly
-    headGroup.add(capBrim);
-
-    // Cap button on top
-    const capButton = new THREE.Mesh(sphereGeo, materials.cap);
-    capButton.scale.set(0.04, 0.04, 0.04);
-    capButton.position.set(0, 0.36, 0.02);
-    headGroup.add(capButton);
-
-    // Eyes (glowing cyan)
-    const eyeGeo = ResourceManager.addDisposable(new THREE.SphereGeometry(0.04, 6, 6));
-    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
-    ResourceManager.addDisposable(eyeMat);
-    const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
-    leftEye.position.set(-0.12, 0.05, 0.3); headGroup.add(leftEye);
-    const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
-    rightEye.position.set(0.12, 0.05, 0.3); headGroup.add(rightEye);
-
-    // Glasses
-    const lensGeo = ResourceManager.addDisposable(new THREE.BoxGeometry(0.14, 0.1, 0.02));
-    const leftLens = new THREE.Mesh(lensGeo, materials.glasses);
-    leftLens.position.set(-0.12, 0.05, 0.32); headGroup.add(leftLens);
-    const rightLens = new THREE.Mesh(lensGeo, materials.glasses);
-    rightLens.position.set(0.12, 0.05, 0.32); headGroup.add(rightLens);
-    const bridge = new THREE.Mesh(ResourceManager.addDisposable(new THREE.BoxGeometry(0.08, 0.02, 0.02)), materials.glassesFrame);
-    bridge.position.set(0, 0.05, 0.32); headGroup.add(bridge);
-
-    // ============================================
-    // ARMS - REACHING FORWARD TO KEYBOARD
-    // ============================================
-    // Arm geometries (reused)
-    const armGeo = ResourceManager.addDisposable(new THREE.BoxGeometry(0.2, 0.6, 0.2));
-    const forearmGeo = ResourceManager.addDisposable(new THREE.BoxGeometry(0.18, 0.5, 0.18));
-    const handGeo = ResourceManager.addDisposable(new THREE.BoxGeometry(0.15, 0.15, 0.15));
-
-    // LEFT ARM - reaches to left side of keyboard
-    const leftArmGroup = new THREE.Group();
-    leftArmGroup.position.set(-0.6, 1.3, 0); // Wider, higher shoulders
-    characterGroup.add(leftArmGroup);
-
-    // Upper arm: angled forward toward laptop
-    const leftUpper = new THREE.Mesh(armGeo, materials.shirt);
-    leftUpper.position.set(0, -0.1, 0.28); // Shifted forward
-    leftUpper.rotation.x = 0.45; // Tilt forward toward keyboard
-    leftArmGroup.add(leftUpper);
-
-    // Forearm group at end of upper arm
-    const leftForearmGroup = new THREE.Group();
-    leftForearmGroup.position.set(0, -0.3, 0.5); // Further forward
-    leftArmGroup.add(leftForearmGroup);
-
-    // Forearm: bent down to reach keyboard
-    const leftForearm = new THREE.Mesh(forearmGeo, materials.shirt);
-    leftForearm.position.set(0, -0.1, 0.18);
-    leftForearm.rotation.x = 0.75; // Bend forward-down
-    leftForearmGroup.add(leftForearm);
-
-    // Hand: offset left, positioned over keyboard
-    const leftHand = new THREE.Mesh(handGeo, materials.skin);
-    leftHand.position.set(-0.12, -0.32, 0.45); // Left offset, forward, down
-    leftForearmGroup.add(leftHand);
-
-    // RIGHT ARM - reaches to right side of keyboard
-    const rightArmGroup = new THREE.Group();
-    rightArmGroup.position.set(0.6, 1.3, 0); // Wider, higher shoulders
-    characterGroup.add(rightArmGroup);
-
-    const rightUpper = new THREE.Mesh(armGeo, materials.shirt);
-    rightUpper.position.set(0, -0.1, 0.28);
-    rightUpper.rotation.x = 0.45;
-    rightArmGroup.add(rightUpper);
-
-    const rightForearmGroup = new THREE.Group();
-    rightForearmGroup.position.set(0, -0.3, 0.5);
-    rightArmGroup.add(rightForearmGroup);
-
-    const rightForearm = new THREE.Mesh(forearmGeo, materials.shirt);
-    rightForearm.position.set(0, -0.1, 0.18);
-    rightForearm.rotation.x = 0.75;
-    rightForearmGroup.add(rightForearm);
-
-    const rightHand = new THREE.Mesh(handGeo, materials.skin);
-    rightHand.position.set(0.12, -0.32, 0.45); // Right offset, forward, down
-    rightForearmGroup.add(rightHand);
-
-    // Legs
-    const legGeo = ResourceManager.addDisposable(new THREE.BoxGeometry(0.25, 0.8, 0.25));
-    const leftLeg = new THREE.Mesh(legGeo, materials.pants);
-    leftLeg.position.set(-0.25, -0.4, 0.2); characterGroup.add(leftLeg);
-    const rightLeg = new THREE.Mesh(legGeo, materials.pants);
-    rightLeg.position.set(0.25, -0.4, 0.2); characterGroup.add(rightLeg);
-
-    // LAPTOP
-    const laptopGroup = new THREE.Group();
-    laptopGroup.position.set(0, 1.58, 0.2);
-    workspaceGroup.add(laptopGroup);
-
-    laptopGroup.add(createBox(1.4, 0.05, 0.9, materials.laptop, 0, 0, 0, 0, 0, 0, true));
-
-    const screenGroup = new THREE.Group();
-    screenGroup.position.set(0, 0.025, -0.45);
-    laptopGroup.add(screenGroup);
-
-    const screenFrame = createBox(1.4, 0.9, 0.05, materials.laptop, 0, 0.45, 0, -0.3, 0, 0, true);
-    screenGroup.add(screenFrame);
-
-    const displayPlane = ResourceManager.addDisposable(new THREE.PlaneGeometry(1.25, 0.75));
-    const screenDisplay = new THREE.Mesh(displayPlane, materials.screenGlow);
-    screenDisplay.position.set(0, 0.45, 0.03); screenDisplay.rotation.x = -0.3;
-    screenGroup.add(screenDisplay);
-
-    const codeLineGeo = ResourceManager.addDisposable(new THREE.PlaneGeometry(1, 0.02));
-    for (let i = 0; i < 5; i++) {
-        const line = new THREE.Mesh(codeLineGeo, materials.codeLine);
-        line.scale.x = 0.3 + Math.random() * 0.5;
-        line.position.set(-0.2 + Math.random() * 0.2, 0.65 - i * 0.1, 0.04); line.rotation.x = -0.3;
-        screenGroup.add(line);
-    }
-
-    const screenLight = new THREE.PointLight(0x00f0ff, 0.6, 4);
-    screenLight.position.set(0, 0.5, 0.5); laptopGroup.add(screenLight);
-
-    // Keyboard keys (simplified)
-    const keyGeo = ResourceManager.addDisposable(new THREE.BoxGeometry(0.08, 0.02, 0.08));
-    for (let row = 0; row < 3; row++) {
-        for (let col = 0; col < 10; col++) {
-            const key = new THREE.Mesh(keyGeo, materials.keys);
-            key.position.set(-0.45 + col * 0.1, 0.03, -0.2 + row * 0.1);
-            laptopGroup.add(key);
-        }
-    }
-
-    // COFFEE MUG
-    const mugGroup = new THREE.Group();
-    mugGroup.position.set(1.8, 1.58, 0.3); workspaceGroup.add(mugGroup);
-    const mugCyl = new THREE.Mesh(cylGeo, materials.mug);
-    mugCyl.scale.set(0.12, 0.25, 0.12); mugCyl.castShadow = true; mugGroup.add(mugCyl);
-    const coffeePlane = ResourceManager.addDisposable(new THREE.CircleGeometry(0.1, 8));
-    const coffeeMesh = new THREE.Mesh(coffeePlane, materials.coffee);
-    coffeeMesh.rotation.x = -Math.PI / 2; coffeeMesh.position.y = 0.1; mugGroup.add(coffeeMesh);
-
-    // Steam - object pool
-    const steamPool = [];
-    const steamGeo = ResourceManager.addDisposable(new THREE.SphereGeometry(0.02, 4, 4));
-    for (let i = 0; i < 3; i++) {
-        const steam = new THREE.Mesh(steamGeo, materials.steam.clone());
-        steam.position.set(1.8, 1.75 + i * 0.1, 0.3);
-        steam.userData = { baseY: 1.75 + i * 0.1, speed: 0.001 + i * 0.0005, offset: i * 2.1 };
-        workspaceGroup.add(steam); steamPool.push(steam);
-    }
-
-    // PLANT
-    const plantGroup = new THREE.Group();
-    plantGroup.position.set(-2.2, 1.58, -0.5); workspaceGroup.add(plantGroup);
-    const potCyl = new THREE.Mesh(cylGeo, materials.plantPot);
-    potCyl.scale.set(0.2, 0.3, 0.2); potCyl.castShadow = true; plantGroup.add(potCyl);
-    const soilPlane = ResourceManager.addDisposable(new THREE.CircleGeometry(0.18, 6));
-    const soil = new THREE.Mesh(soilPlane, new THREE.MeshLambertMaterial({ color: 0x3d2314 }));
-    soil.rotation.x = -Math.PI / 2; soil.position.y = 0.12; plantGroup.add(soil);
-    const leafGeo = ResourceManager.addDisposable(new THREE.SphereGeometry(0.15, 6, 6));
-    const leafPos = [[0,0.4,0,0,0],[0.1,0.5,0.1,0.3,0.2],[-0.1,0.45,0.1,-0.3,0.3],[0,0.55,-0.1,0,-0.2]];
-    leafPos.forEach(([x,y,z,rx,rz]) => {
-        const leaf = new THREE.Mesh(leafGeo, materials.plantGreen);
-        leaf.scale.set(1, 2, 0.3); leaf.position.set(x, y, z); leaf.rotation.set(rx, 0, rz); leaf.castShadow = true; plantGroup.add(leaf);
-    });
-
-    // DESK LAMP
-    const lampGroup = new THREE.Group();
-    lampGroup.position.set(-1.5, 1.58, -0.8); workspaceGroup.add(lampGroup);
-    const lampBase = new THREE.Mesh(cylGeo, materials.lampMetal); lampBase.scale.set(0.15, 0.05, 0.15); lampGroup.add(lampBase);
-    const lampArm = new THREE.Mesh(ResourceManager.addDisposable(new THREE.CylinderGeometry(0.02, 0.02, 0.8)), materials.lampMetal);
-    lampArm.position.set(0, 0.4, 0); lampArm.rotation.z = 0.3; lampGroup.add(lampArm);
-    const lampHead = new THREE.Mesh(ResourceManager.addDisposable(new THREE.ConeGeometry(0.12, 0.2, 8, 1, true)), materials.lampMetal);
-    lampHead.position.set(0.2, 0.7, 0); lampHead.rotation.z = 2.5; lampGroup.add(lampHead);
-    const lampLight = new THREE.SpotLight(0xffaa55, 0.4, 6, Math.PI / 4, 0.5);
-    lampLight.position.set(0.2, 0.7, 0); lampLight.target.position.set(0, 0, 0.5); lampGroup.add(lampLight); lampGroup.add(lampLight.target);
-
-    // BOOKS
-    workspaceGroup.add(createBox(0.4, 0.08, 0.6, materials.book1, 2.2, 1.54, -0.5, 0, 0.2, 0, true));
-    workspaceGroup.add(createBox(0.4, 0.08, 0.6, materials.book2, 2.2, 1.62, -0.5, 0, 0.2, 0, true));
-    workspaceGroup.add(createBox(0.4, 0.08, 0.6, materials.book3, 2.2, 1.70, -0.5, 0, 0.2, 0, true));
-
-    // FLOOR & WALLS
-    const floorPlane = ResourceManager.addDisposable(new THREE.PlaneGeometry(20, 20));
-    const floor = new THREE.Mesh(floorPlane, materials.floor);
-    floor.rotation.x = -Math.PI / 2; floor.position.y = 0; floor.receiveShadow = true; scene3d.add(floor);
-    const wallPlane = ResourceManager.addDisposable(new THREE.PlaneGeometry(20, 10));
-    const backWall = new THREE.Mesh(wallPlane, materials.wall);
-    backWall.position.set(0, 5, -5); backWall.receiveShadow = true; scene3d.add(backWall);
-    const sideWall = new THREE.Mesh(wallPlane, materials.wall);
-    sideWall.position.set(-5, 5, 0); sideWall.rotation.y = Math.PI / 2; sideWall.receiveShadow = true; scene3d.add(sideWall);
-
-    // Code sprites (texture atlas)
-    const codeAtlasCanvas = document.createElement('canvas');
-    codeAtlasCanvas.width = 256; codeAtlasCanvas.height = 256;
-    const atlasCtx = codeAtlasCanvas.getContext('2d');
-    atlasCtx.fillStyle = '#00f0ff'; atlasCtx.font = 'bold 24px monospace';
-    const codeChars = ['{', '}', '<', '>', '/', ';', 'AI', 'ML', 'py', 'js'];
-    codeChars.forEach((ch, i) => { atlasCtx.textAlign = 'center'; atlasCtx.textBaseline = 'middle'; atlasCtx.fillText(ch, (i%4)*64+32, Math.floor(i/4)*64+32); });
-    const codeAtlasTexture = new THREE.CanvasTexture(codeAtlasCanvas);
-    codeAtlasTexture.magFilter = THREE.NearestFilter; codeAtlasTexture.minFilter = THREE.NearestFilter;
-    ResourceManager.addDisposable(codeAtlasTexture);
-
-    const codeSprites = [];
-    for (let i = 0; i < 10; i++) {
-        const spriteMat = new THREE.SpriteMaterial({ map: codeAtlasTexture, transparent: true, opacity: 0.5 });
-        const sprite = new THREE.Sprite(spriteMat);
-        sprite.position.set((Math.random()-0.5)*8, 2+Math.random()*4, (Math.random()-0.5)*6);
-        sprite.scale.set(0.4, 0.4, 0.4);
-        sprite.userData = { vx:(Math.random()-0.5)*0.008, vy:0.003+Math.random()*0.005, vz:(Math.random()-0.5)*0.008 };
-        scene3d.add(sprite); codeSprites.push(sprite);
-    }
-
-    // Mouse interaction
-    let scene3dMouseX = 0, scene3dMouseY = 0, isDragging = false, prevMousePos = { x: 0, y: 0 }, sceneRotY = 0, sceneRotX = 0;
-    ResourceManager.addListener(scene3dContainer, 'mousedown', (e) => { isDragging = true; prevMousePos = { x: e.clientX, y: e.clientY }; });
-    ResourceManager.addListener(document, 'mouseup', () => { isDragging = false; });
-    ResourceManager.addListener(document, 'mousemove', throttleRAF((e) => {
-        if (isDragging && e.target === scene3dCanvas) {
-            const dx = e.clientX - prevMousePos.x, dy = e.clientY - prevMousePos.y;
-            sceneRotY += dx * 0.005; sceneRotX += dy * 0.005;
-            sceneRotX = Math.max(-0.5, Math.min(0.5, sceneRotX)); prevMousePos = { x: e.clientX, y: e.clientY };
-        }
-        const rect = scene3dContainer.getBoundingClientRect();
-        scene3dMouseX = (e.clientX - rect.left) / rect.width - 0.5;
-        scene3dMouseY = (e.clientY - rect.top) / rect.height - 0.5;
-    }));
-    ResourceManager.addListener(scene3dContainer, 'touchstart', (e) => { isDragging = true; prevMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }, { passive: true });
-    ResourceManager.addListener(document, 'touchend', () => { isDragging = false; });
-    ResourceManager.addListener(document, 'touchmove', (e) => { if (isDragging) { const dx = e.touches[0].clientX - prevMousePos.x, dy = e.touches[0].clientY - prevMousePos.y; sceneRotY += dx * 0.005; sceneRotX += dy * 0.005; sceneRotX = Math.max(-0.5, Math.min(0.5, sceneRotX)); prevMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY }; } }, { passive: true });
-
-    // ============================================
-    // CORRECTED ANIMATION LOOP
-    // ============================================
-    let time = 0;
-    function animate3D() {
-        requestAnimationFrame(animate3D);
-        if (!isPageVisible || !isHeroVisible) return;
-        time += 0.016;
-
-        // TYPING ANIMATION - forearms move up/down hitting keys
-        const tSpeed = 8;
-        // Base forearm rotation.x = 0.75 (reaching keyboard)
-        // Oscillate for typing motion
-        leftForearmGroup.rotation.x = 0.75 + Math.sin(time * tSpeed) * 0.1;
-        leftForearmGroup.rotation.z = Math.cos(time * tSpeed * 0.7) * 0.04;
-        rightForearmGroup.rotation.x = 0.75 + Math.sin(time * tSpeed + Math.PI) * 0.1;
-        rightForearmGroup.rotation.z = Math.cos(time * tSpeed * 0.7 + Math.PI) * 0.04;
-
-        // Head looking down at screen
-        headGroup.rotation.y = Math.sin(time * 0.5) * 0.08;
-        headGroup.rotation.x = 0.25 + Math.sin(time * 0.3) * 0.03;
-
-        // Breathing
-        characterGroup.position.y = 0.85 + Math.sin(time * 1.5) * 0.008;
-
-        // Steam
-        steamPool.forEach((steam) => {
-            steam.position.y += steam.userData.speed;
-            steam.position.x = 1.8 + Math.sin(time * 2 + steam.userData.offset) * 0.02;
-            const life = (steam.position.y - steam.userData.baseY) / 0.5;
-            steam.material.opacity = Math.max(0, 0.25 * (1 - life));
-            if (steam.position.y > steam.userData.baseY + 0.5) { steam.position.y = steam.userData.baseY; steam.material.opacity = 0.25; }
-        });
-
-        // Screen glow
-        materials.screenGlow.opacity = 0.25 + Math.sin(time * 3) * 0.08;
-        screenLight.intensity = 0.5 + Math.sin(time * 3) * 0.15;
-
-        // Code sprites
-        codeSprites.forEach(sprite => {
-            sprite.position.x += sprite.userData.vx; sprite.position.y += sprite.userData.vy; sprite.position.z += sprite.userData.vz;
-            sprite.material.opacity = 0.3 + Math.sin(time * 2 + sprite.position.x) * 0.15;
-            if (sprite.position.y > 6) sprite.position.y = 2;
-            if (Math.abs(sprite.position.x) > 5) sprite.userData.vx *= -1;
-            if (Math.abs(sprite.position.z) > 4) sprite.userData.vz *= -1;
-        });
-
-        plantGroup.rotation.z = Math.sin(time * 0.8) * 0.02;
-        lampLight.intensity = 0.35 + Math.sin(time * 10) * 0.04 + Math.sin(time * 23) * 0.02;
-
-        const targetY = sceneRotY + scene3dMouseX * 0.3;
-        const targetX = sceneRotX - scene3dMouseY * 0.2;
-        workspaceGroup.rotation.y += (targetY - workspaceGroup.rotation.y) * 0.05;
-        workspaceGroup.rotation.x += (targetX - workspaceGroup.rotation.x) * 0.05;
-
-        scene3dCamera.position.x = 8 + Math.sin(time * 0.3) * 0.3;
-        scene3dCamera.position.y = 6 + Math.cos(time * 0.2) * 0.2;
-        scene3dCamera.lookAt(0, 1, 0);
-        scene3dRenderer.render(scene3d, scene3dCamera);
-    }
-    animate3D();
-
-    ResourceManager.addListener(window, 'resize', debounce(() => {
-        const w = scene3dContainer.clientWidth, h = scene3dContainer.clientHeight;
-        scene3dCamera.aspect = w / h; scene3dCamera.updateProjectionMatrix(); scene3dRenderer.setSize(w, h);
-    }, 150), { passive: true });
-
-    // GSAP SCROLL ANIMATIONS
-    gsap.registerPlugin(ScrollTrigger);
-
-    gsap.utils.toArray('.reveal').forEach((elem, i) => {
-        gsap.to(elem, {
-            opacity: 1, y: 0, duration: 0.8, ease: 'power2.out',
-            scrollTrigger: { trigger: elem, start: 'top 88%', toggleActions: 'play none none none', once: true },
-            delay: (i % 4) * 0.08
-        });
-    });
-
-    // 3D Card Tilt
-    const aboutCard = document.getElementById('about-card');
-    const contactCard = document.getElementById('contact-card');
-    [aboutCard, contactCard].forEach(card => {
-        if (!card) return;
-        const onMove = (e) => {
-            const rect = card.getBoundingClientRect();
-            const x = e.clientX - rect.left, y = e.clientY - rect.top;
-            const cx = rect.width / 2, cy = rect.height / 2;
-            card.style.transform = `perspective(1000px) rotateX(${(y-cy)/10}deg) rotateY(${(cx-x)/10}deg) scale3d(1.02,1.02,1.02)`;
-        };
-        const onLeave = () => { card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1,1,1)'; };
-        card.addEventListener('mousemove', onMove); card.addEventListener('mouseleave', onLeave);
-        ResourceManager.listeners.push({ target: card, type: 'mousemove', handler: onMove });
-        ResourceManager.listeners.push({ target: card, type: 'mouseleave', handler: onLeave });
-    });
-
-    document.querySelectorAll('.project-card').forEach(card => {
-        const onMove = (e) => {
-            const rect = card.getBoundingClientRect();
-            const x = e.clientX - rect.left, y = e.clientY - rect.top;
-            const cx = rect.width / 2, cy = rect.height / 2;
-            card.style.transform = `perspective(1000px) rotateX(${-(y-cy)/15}deg) rotateY(${(cx-x)/15}deg) translateY(-10px)`;
-        };
-        const onLeave = () => { card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) translateY(0)'; };
-        card.addEventListener('mousemove', onMove); card.addEventListener('mouseleave', onLeave);
-        ResourceManager.listeners.push({ target: card, type: 'mousemove', handler: onMove });
-        ResourceManager.listeners.push({ target: card, type: 'mouseleave', handler: onLeave });
-    });
-
-    gsap.to('.hero h1', { yPercent: 20, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
-
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        const onClick = (e) => { e.preventDefault(); const target = document.querySelector(anchor.getAttribute('href')); if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
-        anchor.addEventListener('click', onClick);
-        ResourceManager.listeners.push({ target: anchor, type: 'click', handler: onClick });
-    });
-
-    // Cleanup on unload
-    ResourceManager.addListener(window, 'beforeunload', () => {
-        ResourceManager.disposeAll();
-        [nodeGeo, connGeo, bgParticleGeo, displayPlane, codeLineGeo, codeAtlasTexture, boxGeo, cylGeo, sphereGeo, eyeGeo, lensGeo, bridge.geometry, armGeo, forearmGeo, handGeo, legGeo, keyGeo, floorPlane, wallPlane, soilPlane, coffeePlane, steamGeo, leafGeo, lampArm.geometry, lampHead.geometry].forEach(g => { if (g && g.dispose) try { g.dispose(); } catch(e) {} });
-        if (bgRenderer) { bgRenderer.dispose(); bgRenderer.forceContextLoss(); }
-        if (scene3dRenderer) { scene3dRenderer.dispose(); scene3dRenderer.forceContextLoss(); }
-        ScrollTrigger.getAll().forEach(t => t.kill()); gsap.globalTimeline.clear();
-    });
-
-    window._portfolioPerf = { getMemory: () => performance.memory ? { used: (performance.memory.usedJSHeapSize/1048576).toFixed(1)+' MB', total: (performance.memory.totalJSHeapSize/1048576).toFixed(1)+' MB' } : 'N/A', ResourceManager };
-    </script>
 </body>
 </html>
